@@ -19,8 +19,8 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Ensure bin/rails is executable
-        run: chmod +x bin/rails
+      - name: Ensure bin/brakeman is executable
+        run: chmod +x bin/brakeman
 
       - name: Scan for common Rails security vulnerabilities using static analysis
         run: bin/brakeman --no-pager
