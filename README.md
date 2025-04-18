@@ -12,6 +12,7 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
 - Team summarization across multiple documents
 - AI-powered team evaluation with customizable judging criteria
 - Leaderboard generation with team rankings
+- Blog post generation from team summaries
 
 ## Technology Stack
 
@@ -24,7 +25,7 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
 
 ## AI Integration
 
-The application uses AI services for document processing, summarization, and evaluation:
+The application uses AI services for document processing, summarization, evaluation, and content generation:
 
 ### Document Processing
 
@@ -50,6 +51,13 @@ The application uses AI services for document processing, summarization, and eva
 - **Objective assessment**: AI evaluates team submissions against criteria
 - **Detailed feedback**: Provides specific feedback for each criterion
 - **Weighted scoring**: Calculates total score based on criteria importance
+
+### AI Blog Generation
+
+- **Technical blog posts**: Creates structured, engaging content from team summaries
+- **Markdown format**: Properly formatted with frontmatter and sections
+- **Storytelling**: Crafts a narrative around the team's journey and project
+- **Technical details**: Highlights key technical aspects and learning moments
 
 You can configure either Claude (Anthropic) or OpenAI's API for processing. The system will automatically:
 
@@ -511,6 +519,84 @@ Returns a ranked leaderboard of all evaluated teams.
     },
     ...
   ]
+}
+```
+
+### Team Blogs
+
+#### GET /api/team_blogs
+Returns all team blogs.
+
+**Query Parameters:**
+- `status` - Filter by status (pending, processing, success, failed)
+
+**Response:**
+```json
+{
+  "team_blogs": [
+    {
+      "id": 1,
+      "team_name": "Team1",
+      "content": "---\ntitle: \"Innovating Document Analysis: Team1's Hackathon Journey\"\nauthor: \"Team1\"\ndate: \"2025-04-18\"\ntags: [\"hackathon\", \"AI\", \"document-processing\"]\n---\n\n# Innovating Document Analysis...",
+      "status": "success",
+      "created_at": "2025-04-18T14:30:00.000Z",
+      "updated_at": "2025-04-18T14:35:00.000Z"
+    },
+    ...
+  ]
+}
+```
+
+#### GET /api/team_blogs/:team_name
+Returns a specific team blog.
+
+**Response:**
+```json
+{
+  "team_blog": {
+    "id": 1,
+    "team_name": "Team1",
+    "content": "---\ntitle: \"Innovating Document Analysis: Team1's Hackathon Journey\"\nauthor: \"Team1\"\ndate: \"2025-04-18\"\ntags: [\"hackathon\", \"AI\", \"document-processing\"]\n---\n\n# Innovating Document Analysis...",
+    "status": "success",
+    "created_at": "2025-04-18T14:30:00.000Z",
+    "updated_at": "2025-04-18T14:35:00.000Z"
+  }
+}
+```
+
+#### GET /api/team_blogs/:team_name/markdown
+Returns the raw markdown content of a team blog for direct rendering.
+
+**Response:**
+```markdown
+---
+title: "Innovating Document Analysis: Team1's Hackathon Journey"
+author: "Team1"
+date: "2025-04-18"
+tags: ["hackathon", "AI", "document-processing"]
+---
+
+# Innovating Document Analysis: Team1's Hackathon Journey
+
+## Introduction
+
+In the fast-paced world of document management and analysis...
+```
+
+#### POST /api/team_blogs/generate
+Generates a new team blog from a team summary.
+
+**Request:**
+```json
+{
+  "team_name": "Team1"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Team blog generation started for: Team1"
 }
 ```
 
