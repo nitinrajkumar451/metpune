@@ -18,23 +18,27 @@ module Ai
 
     def extract_text_from_document(file_content, file_type)
       # This would be a real API call in production
-      # For test context that mocks HTTParty failure, we pass the raised error up
-      begin
-        # Mock HTTParty API call for testing
-        response = HTTParty.post("https://api.example.com/extract", 
-          body: { content: file_content },
-          headers: { 'Content-Type' => 'application/json' }
-        )
-        
-        # Return mock response based on file type
-        if file_type == "pdf"
-          "Sample PDF content extracted from the document.\n\nThis is a mock extraction for testing purposes."
-        else # docx
-          "Sample DOCX content extracted from the document.\n\nThis is a mock extraction for testing purposes."
+      if Rails.env.production?
+        begin
+          # Real API call in production
+          response = HTTParty.post("https://api.example.com/extract", 
+            body: { content: file_content },
+            headers: { 'Content-Type' => 'application/json' }
+          )
+          
+          # Parse and return the response
+          JSON.parse(response.body)["extracted_text"] rescue "Error parsing API response"
+        rescue StandardError => e
+          # Re-raise the error
+          raise e
         end
-      rescue StandardError => e
-        # Re-raise the error for the test
-        raise e
+      else
+        # Mock response for development/test
+        if file_type == "pdf"
+          "Sample PDF content extracted from the document.\n\nThis is a mock extraction for testing purposes.\n\nContent appears to be a technical document with several sections including introduction, methodology, and results."
+        else # docx
+          "Sample DOCX content extracted from the document.\n\nThis is a mock extraction for testing purposes.\n\nDocument includes formatting like tables, bullet points, and embedded images which have been converted to plain text."
+        end
       end
     end
   end

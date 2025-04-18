@@ -7,8 +7,9 @@
 # Ignore bundler config.
 /.bundle
 
-# Ignore all environment files.
+# Ignore all environment files except .env.example
 /.env*
+!/.env.example
 
 # Ignore all logfiles and tempfiles.
 /log/*
@@ -30,3 +31,6 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# Ignore Google Drive credentials
+/config/credentials/google_drive_credentials.json

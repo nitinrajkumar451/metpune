@@ -42,13 +42,25 @@ class IngestDocumentsJob < ApplicationJob
 
   def process_submission(submission, google_drive_service)
     processor = processor_for_file_type(submission.file_type)
-
+    
     begin
+      Rails.logger.info("Processing submission #{submission.id} (#{submission.file_type})")
       raw_text = processor.process(submission, google_drive_service)
-      submission.update!(raw_text: raw_text, status: "success")
-    rescue StandardError => e
-      Rails.logger.error("Error processing submission #{submission.id}: #{e.message}")
-      submission.update!(status: "failed")
+      
+      if raw_text.present?
+        submission.update!(raw_text: raw_text, status: "success")
+        Rails.logger.info("Successfully processed submission #{submission.id}")
+      else
+        Rails.logger.error("No content extracted from submission #{submission.id}")
+        submission.update!(status: "failed", raw_text: "Error: No content could be extracted")
+      end
+    rescue => e
+      Rails.logger.error("Error processing submission #{submission.id}: #{e.class} - #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      
+      # Provide more detailed error info in development mode
+      error_details = Rails.env.development? ? "#{e.class}: #{e.message}" : "Processing error"
+      submission.update!(status: "failed", raw_text: "Error: #{error_details}")
     end
   end
 

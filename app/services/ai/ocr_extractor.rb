@@ -18,20 +18,25 @@ module Ai
 
     def extract_text_from_image(file_content)
       # This would be a real API call in production
-      begin
-        # Mock an API call
-        response = HTTParty.post("https://api.example.com/ocr", 
-          body: { image_content: file_content },
-          headers: { 'Content-Type' => 'application/json' }
-        )
-        
-        # Return mock OCR response
+      if Rails.env.production?
+        begin
+          # Real API call in production
+          response = HTTParty.post("https://api.example.com/ocr", 
+            body: { image_content: file_content },
+            headers: { 'Content-Type' => 'application/json' }
+          )
+          
+          # Parse and return the response
+          JSON.parse(response.body)["ocr_text"] rescue "Error parsing API response"
+        rescue StandardError => e
+          # Re-raise the error
+          raise e
+        end
+      else
+        # Mock response for development/test
         "OCR text extracted from the image:\n\n" +
         "This is a sample text that would be extracted from an image using OCR technology.\n" +
         "In a real application, this would contain the actual text content from the image."
-      rescue StandardError => e
-        # Re-raise for error testing
-        raise e
       end
     end
   end
