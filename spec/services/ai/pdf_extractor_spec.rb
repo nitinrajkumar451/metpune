@@ -8,7 +8,7 @@ RSpec.describe Ai::PdfExtractor do
 
   before do
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(pdf_content)
-    
+
     # Mock the HTTParty call to avoid actual network requests
     allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
   end

@@ -6,7 +6,7 @@ FactoryBot.define do
     sequence(:source_url) { |n| "https://drive.google.com/file/d/#{n}" }
     raw_text { Faker::Lorem.paragraphs(number: 3).join("\n\n") }
     status { 'pending' }
-    project { ['Project1', 'Project2', 'Project3', nil].sample }
+    project { [ 'Project1', 'Project2', 'Project3', nil ].sample }
 
     trait :pdf do
       file_type { 'pdf' }

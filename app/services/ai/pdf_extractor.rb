@@ -21,11 +21,11 @@ module Ai
       if Rails.env.production?
         begin
           # Real API call in production
-          response = HTTParty.post("https://api.example.com/extract", 
+          response = HTTParty.post("https://api.example.com/extract",
             body: { content: file_content },
-            headers: { 'Content-Type' => 'application/json' }
+            headers: { "Content-Type" => "application/json" }
           )
-          
+
           # Parse and return the response
           JSON.parse(response.body)["extracted_text"] rescue "Error parsing API response"
         rescue StandardError => e

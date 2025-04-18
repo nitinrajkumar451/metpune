@@ -114,6 +114,35 @@ bundle exec rspec spec/services
 bundle exec rspec spec/jobs
 ```
 
+## API Documentation
+
+The API is documented using Swagger (OpenAPI). After starting the server, you can access the API documentation at:
+
+```
+http://localhost:3000/api-docs
+```
+
+> **Note:** There might be some compatibility issues with Swagger UI and Rails 8. If the Swagger UI is not loading correctly, you can still access the raw OpenAPI specification or use the static HTML guide.
+
+### API Documentation Options
+
+1. **Swagger UI** (if available):
+   ```
+   http://localhost:3000/api-docs
+   ```
+
+2. **Raw OpenAPI Specification**:
+   ```
+   http://localhost:3000/api-docs/v1/swagger.yaml
+   ```
+   You can download this file and use it with tools like Postman or Swagger UI Desktop.
+
+3. **Static HTML Guide**:
+   ```
+   http://localhost:3000/api-guide.html
+   ```
+   This provides a simple, static HTML documentation of the API endpoints.
+
 ## API Endpoints
 
 ### POST /api/start_ingestion
@@ -132,6 +161,7 @@ Returns a list of all submissions.
 **Query Parameters:**
 - `status` - Filter by status (pending, processing, success, failed)
 - `team_name` - Filter by team name
+- `project` - Filter by project
 
 **Response:**
 ```json
@@ -143,6 +173,7 @@ Returns a list of all submissions.
     "file_type": "pdf",
     "source_url": "google_drive_file_id",
     "status": "success",
+    "project": "Project1",
     "raw_text": "Extracted text content...",
     "created_at": "2025-04-18T09:30:00.000Z",
     "updated_at": "2025-04-18T09:35:00.000Z"
@@ -163,6 +194,7 @@ Returns a specific submission.
   "file_type": "pdf",
   "source_url": "google_drive_file_id",
   "status": "success",
+  "project": "Project1",
   "raw_text": "Extracted text content...",
   "created_at": "2025-04-18T09:30:00.000Z",
   "updated_at": "2025-04-18T09:35:00.000Z"

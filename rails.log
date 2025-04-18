@@ -1,0 +1,27 @@
+/home/nitin/.local/share/mise/installs/ruby/3.3.5/lib/ruby/3.3.0/bundled_gems.rb:75: warning: ⛔️ WARNING: Sidekiq testing API enabled, but this is not the test environment.  Your jobs will not go to Redis.
+=> Booting Puma
+=> Rails 8.0.2 application starting in development 
+=> Run `bin/rails server --help` for more startup options
+DEPRECATION WARNING: Rswag::Ui: WARNING: The method will be renamed to "openapi_endpoint" in v3.0 (called from block in <main> at /mnt/c/Users/Nitin/Documents/metpune/metathon_backend/config/initializers/rswag_ui.rb:13)
+Puma starting in single mode...
+* Puma version: 6.6.0 ("Return to Forever")
+* Ruby version: ruby 3.3.5 (2024-09-03 revision ef084cc8f4) +YJIT [x86_64-linux]
+*  Min threads: 3
+*  Max threads: 3
+*  Environment: development
+*          PID: 32226
+* Listening on http://0.0.0.0:3000
+Use Ctrl-C to stop
+Started GET "/api-docs/v1/swagger.yaml" for 127.0.0.1 at 2025-04-18 15:16:50 +0000
+  [1m[36mActiveRecord::SchemaMigration Load (0.6ms)[0m  [1m[34mSELECT "schema_migrations"."version" FROM "schema_migrations" ORDER BY "schema_migrations"."version" ASC /*application='MetathonBackend'*/[0m
+Started GET "/api/submissions" for 127.0.0.1 at 2025-04-18 15:17:24 +0000
+Processing by Api::SubmissionsController#index as */*
+  [1m[36mSubmission Load (7.7ms)[0m  [1m[34mSELECT "submissions".* FROM "submissions" /*action='index',application='MetathonBackend',controller='submissions'*/[0m
+  ↳ app/controllers/api/submissions_controller.rb:11:in `index'
+Completed 200 OK in 151ms (Views: 19.3ms | ActiveRecord: 13.3ms (1 query, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/favicon.ico" for 127.0.0.1 at 2025-04-18 15:18:09 +0000
+  
+ActionController::RoutingError (No route matches [GET] "/favicon.ico"):
+  

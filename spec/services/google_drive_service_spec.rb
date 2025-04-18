@@ -25,13 +25,13 @@ RSpec.describe GoogleDriveService do
       before do
         # Set Rails environment to production for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
-        
+
         # Mock metathon folder response
         allow(mock_drive_service).to receive(:list_files)
           .with(q: "name = 'Metathon2025' and mimeType = 'application/vnd.google-apps.folder'", fields: "files(id, name)")
-          .and_return(instance_double(Google::Apis::DriveV3::FileList, files: [Google::Apis::DriveV3::File.new(id: 'metathon_folder_id')]))
-          
-        # Mock team folders response  
+          .and_return(instance_double(Google::Apis::DriveV3::FileList, files: [ Google::Apis::DriveV3::File.new(id: 'metathon_folder_id') ]))
+
+        # Mock team folders response
         allow(mock_drive_service).to receive(:list_files)
           .with(q: "'metathon_folder_id' in parents and mimeType = 'application/vnd.google-apps.folder'", fields: "files(id, name)")
           .and_return(instance_double(Google::Apis::DriveV3::FileList, files: team_folders))
@@ -41,13 +41,13 @@ RSpec.describe GoogleDriveService do
         expect(service.list_team_folders).to eq([ 'Team1', 'Team2', 'Team3' ])
       end
     end
-    
+
     context 'in development/test environment' do
       before do
         # Set Rails environment to development for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
       end
-      
+
       it 'returns mock team names in development/test' do
         expect(service.list_team_folders).to eq([ 'Team1', 'Team2', 'Team3' ])
       end
@@ -56,7 +56,7 @@ RSpec.describe GoogleDriveService do
 
   describe '#list_team_files' do
     let(:team_name) { 'Team1' }
-    
+
     context 'in production environment' do
       let(:team_folder_id) { 'team_folder_id' }
       let(:team_folder_response) do
@@ -80,7 +80,7 @@ RSpec.describe GoogleDriveService do
       before do
         # Set Rails environment to production for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
-        
+
         # First, find the metathon folder
         allow(mock_drive_service).to receive(:list_files)
           .with(q: "name = 'Metathon2025' and mimeType = 'application/vnd.google-apps.folder'", fields: "files(id, name)")
@@ -107,24 +107,24 @@ RSpec.describe GoogleDriveService do
         expect(service.list_team_files(team_name)).to eq(expected_files)
       end
     end
-    
+
     context 'in development/test environment' do
       before do
         # Set Rails environment to development for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
       end
-      
+
       it 'returns mock files with project folders in development/test' do
         files = service.list_team_files(team_name)
-        
+
         # Verify we get the expected number of files
         expect(files.length).to eq(6)
-        
+
         # Verify we have files from different projects
         expect(files.select { |f| f[:path].include?("Project1") }.length).to eq(3)
         expect(files.select { |f| f[:path].include?("Project2") }.length).to eq(2)
         expect(files.select { |f| f[:path].include?("SourceCode") }.length).to eq(1)
-        
+
         # Verify file types
         expect(files.map { |f| f[:mime_type] }).to include(
           'application/pdf',
@@ -144,7 +144,7 @@ RSpec.describe GoogleDriveService do
       before do
         # Set Rails environment to production for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
-        
+
         allow(mock_drive_service).to receive(:get_file).and_return(mock_file)
         # Mock StringIO to capture content
         allow_any_instance_of(StringIO).to receive(:string).and_return('sample file content')
@@ -159,52 +159,52 @@ RSpec.describe GoogleDriveService do
         content = service.download_file(file_id)
         expect(content).to eq('sample file content')
       end
-      
+
       context 'when direct download fails' do
         let(:export_service) { instance_double(Google::Apis::DriveV3::DriveService) }
         let(:export_service_instance) { described_class.new }
-        
+
         before do
           # Setup a new service instance for this context
           allow(Google::Apis::DriveV3::DriveService).to receive(:new).and_return(export_service)
           allow(export_service).to receive(:authorization=)
-          
+
           # Setup the export_file mocks
           allow(export_service).to receive(:get_file).with(file_id, download_dest: instance_of(StringIO))
             .and_raise(Google::Apis::ClientError.new('Not downloadable'))
-          
+
           allow(export_service).to receive(:export_file)
             .with(file_id, 'application/pdf', download_dest: instance_of(StringIO)) do |_, _, options|
               options[:download_dest].write('sample file content')
               mock_file_content
             end
         end
-        
+
         it 'exports the file as PDF when direct download fails' do
           expect(export_service_instance.download_file(file_id)).to eq('sample file content')
         end
       end
     end
-    
+
     context 'in development/test environment' do
       before do
         # Set Rails environment to development for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
       end
-      
+
       it 'returns mock content based on file ID in development/test' do
         # Test PDF file
         expect(service.download_file('pdf_file')).to include('Sample document content')
-        
+
         # Test PPTX file
         expect(service.download_file('pptx_file')).to include('Sample presentation content')
-        
+
         # Test image file
         expect(service.download_file('jpg_file')).to include('Sample image binary data')
-        
+
         # Test ZIP file
         expect(service.download_file('zip_file')).to include('Sample ZIP archive binary data')
-        
+
         # Test generic file
         expect(service.download_file('random_file')).to include('Sample content for file')
       end

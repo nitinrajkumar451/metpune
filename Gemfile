@@ -67,8 +67,13 @@ group :development, :test do
   gem "faker"
   gem "database_cleaner-active_record"
   gem "rspec-sidekiq"
+
+  # Swagger documentation
+  gem "rswag-api", "2.16.0"
+  gem "rswag-ui", "2.16.0"
+  gem "rswag-specs", "2.16.0"
 end
 
 group :test do
-  gem 'shoulda-matchers', '~> 5.0'
+  gem "shoulda-matchers", "~> 5.0"
 end

@@ -1,0 +1,145 @@
+---
+openapi: 3.0.1
+info:
+  title: Metathon Backend API
+  version: v1
+  description: API documentation for the Metathon Document Ingestion & AI Transcription
+    Module
+paths:
+  "/api/submissions":
+    get:
+      summary: Lists all submissions
+      tags:
+      - Submissions
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        required: false
+        description: Filter submissions by status
+      - name: team_name
+        in: query
+        schema:
+          type: string
+        required: false
+        description: Filter submissions by team name
+      - name: project
+        in: query
+        schema:
+          type: string
+        required: false
+        description: Filter submissions by project
+      responses:
+        '200':
+          description: submissions found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Submission"
+  "/api/submissions/{id}":
+    get:
+      summary: Retrieves a submission
+      tags:
+      - Submissions
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Submission ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: submission found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Submission"
+        '404':
+          description: submission not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+  "/api/start_ingestion":
+    post:
+      summary: Starts the document ingestion process
+      tags:
+      - Ingestion
+      responses:
+        '200':
+          description: ingestion process started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+servers:
+- url: http://localhost:3000
+  description: Development server
+- url: https://metathon-api.example.com
+  description: Production server
+components:
+  schemas:
+    Submission:
+      type: object
+      properties:
+        id:
+          type: integer
+        team_name:
+          type: string
+        filename:
+          type: string
+        file_type:
+          type: string
+          enum:
+          - pdf
+          - pptx
+          - docx
+          - jpg
+          - png
+          - zip
+        source_url:
+          type: string
+        raw_text:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        project:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - team_name
+      - filename
+      - file_type
+      - source_url
+      - status
