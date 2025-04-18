@@ -7,7 +7,7 @@ Rails.application.routes.draw do
 
   # API routes
   namespace :api do
-    resources :submissions, only: [:index, :show]
-    post '/start_ingestion', to: 'submissions#start_ingestion'
+    resources :submissions, only: [ :index, :show ]
+    post "/start_ingestion", to: "submissions#start_ingestion"
   end
 end
