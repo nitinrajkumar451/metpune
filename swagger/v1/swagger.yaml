@@ -143,6 +143,107 @@ paths:
                     type: string
                 required:
                 - message
+  "/api/team_summaries":
+    get:
+      summary: Lists all team summaries
+      tags:
+      - Team Summaries
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        required: false
+        description: Filter team summaries by status
+      responses:
+        '200':
+          description: team summaries found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_summaries:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/TeamSummary"
+                required:
+                - team_summaries
+  "/api/team_summaries/{team_name}":
+    get:
+      summary: Retrieves a team summary
+      tags:
+      - Team Summaries
+      parameters:
+      - name: team_name
+        in: path
+        required: true
+        description: Team name
+        schema:
+          type: string
+      responses:
+        '200':
+          description: team summary found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_summary:
+                    "$ref": "#/components/schemas/TeamSummary"
+                required:
+                - team_summary
+        '404':
+          description: team summary not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+  "/api/team_summaries/generate":
+    post:
+      summary: Generates a comprehensive summary for a team
+      tags:
+      - Team Summaries
+      parameters:
+      - name: team_name
+        in: query
+        schema:
+          type: string
+        required: true
+        description: The team name to generate a summary for
+      responses:
+        '200':
+          description: team summary generation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+        '400':
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
 servers:
 - url: http://localhost:3000
   description: Development server
@@ -197,4 +298,30 @@ components:
       - filename
       - file_type
       - source_url
+      - status
+    TeamSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        team_name:
+          type: string
+        content:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - team_name
       - status

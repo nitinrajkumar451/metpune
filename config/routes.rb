@@ -62,5 +62,10 @@ Rails.application.routes.draw do
     resources :submissions, only: [ :index, :show ]
     get "/summaries", to: "submissions#summaries"
     post "/start_ingestion", to: "submissions#start_ingestion"
+
+    # Team summaries endpoints
+    resources :team_summaries, only: [ :index ]
+    get "/team_summaries/:team_name", to: "team_summaries#show"
+    post "/team_summaries/generate", to: "team_summaries#generate"
   end
 end
