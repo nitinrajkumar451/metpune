@@ -42,11 +42,14 @@ gem "sidekiq"
 gem "google-api-client"
 gem "google-drive-ruby"
 
-# For AI transcription (can be mocked in tests)
+# For AI transcription and API requests
 gem "httparty"
 
 # For handling zip files
 gem "rubyzip"
+
+# For Base64 encoding/decoding (used in AI API requests)
+gem "base64"
 
 # For loading environment variables
 gem "dotenv-rails"

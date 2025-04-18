@@ -19,6 +19,35 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
 - Google Drive API for document retrieval
 - Claude/OpenAI for AI transcription (mocked in tests)
 
+## AI Integration
+
+The application uses AI services for document processing:
+
+- **PDF and DOCX files**: Text extraction with layout preservation
+- **PowerPoint presentations**: Slide-by-slide content summarization
+- **Images (JPG, PNG)**: OCR text extraction
+- **ZIP archives**: Extract and process all contained files based on their types
+
+You can configure either Claude (Anthropic) or OpenAI's API for processing. The system will automatically:
+
+1. Use mock responses in development/test environments (no API keys needed)
+2. In production, use the configured AI provider (Claude is preferred if both are configured)
+
+To set up AI processing in production:
+
+1. Add your API key to the environment variables:
+   ```
+   # For Claude (recommended)
+   CLAUDE_API_KEY=your_claude_api_key
+   
+   # OR for OpenAI
+   OPENAI_API_KEY=your_openai_api_key
+   ```
+
+2. The system will automatically detect the available provider and use it for processing.
+
+If no API keys are set in production, the application will raise an error during document processing.
+
 ## Setup Instructions
 
 ### Prerequisites
