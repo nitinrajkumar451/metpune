@@ -67,5 +67,14 @@ Rails.application.routes.draw do
     resources :team_summaries, only: [ :index ]
     get "/team_summaries/:team_name", to: "team_summaries#show"
     post "/team_summaries/generate", to: "team_summaries#generate"
+
+    # Judging criteria endpoints
+    resources :judging_criteria
+
+    # Team evaluations endpoints
+    resources :team_evaluations, only: [ :index ]
+    get "/team_evaluations/:team_name", to: "team_evaluations#show"
+    post "/team_evaluations/generate", to: "team_evaluations#generate"
+    get "/leaderboard", to: "team_evaluations#leaderboard"
   end
 end

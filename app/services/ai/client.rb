@@ -94,6 +94,31 @@ module Ai
       end
     end
 
+    def evaluate_team(team_name, team_summary, criteria)
+      # Skip API calls in development/test
+      return mock_team_evaluation(team_name, criteria) unless Rails.env.production?
+
+      # Format the criteria as a string
+      formatted_criteria = "Judging Criteria:\n\n"
+      criteria.each do |criterion|
+        formatted_criteria += "- #{criterion[:name]} (Weight: #{criterion[:weight]}): #{criterion[:description]}\n"
+      end
+
+      # Format the content for evaluation
+      formatted_content = "Team: #{team_name}\n\n"
+      formatted_content += "Team Summary:\n#{team_summary}\n\n"
+      formatted_content += formatted_criteria
+
+      case @provider
+      when :claude
+        call_claude_api(formatted_content, create_evaluation_prompt)
+      when :openai
+        call_openai_api(formatted_content, create_evaluation_prompt)
+      else
+        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+      end
+    end
+
     private
 
     def default_provider
@@ -277,6 +302,51 @@ module Ai
       PROMPT
     end
 
+    def create_evaluation_prompt
+      <<~PROMPT
+        You're serving as an objective evaluator for a hackathon or project competition. I'll provide you with:
+
+        1. A comprehensive summary of a team's submission
+        2. A set of judging criteria with weighted importance
+
+        Your task is to carefully evaluate the team based on the provided criteria. For each criterion:
+
+        1. Assign a score from 1.0 to 5.0 (can use decimal points for precision)
+           - 1.0-1.9: Poor - Significantly below expectations
+           - 2.0-2.9: Fair - Below expectations
+           - 3.0-3.9: Good - Meets expectations
+           - 4.0-4.9: Excellent - Exceeds expectations
+           - 5.0: Outstanding - Exceptionally exceeds expectations
+        #{'   '}
+        2. Provide specific, constructive feedback explaining your score
+
+        3. Reference specific details from the team summary to justify your evaluation
+
+        Finally, calculate a weighted total score and provide overall comments about the team's strengths and areas for improvement.
+
+        Ensure your evaluation is:
+        - Fair and objective
+        - Based solely on the provided information
+        - Specific and constructive
+        - Balanced, highlighting both strengths and weaknesses
+
+        Format your response as structured JSON with this exact format:
+        {
+          "scores": {
+            "Criterion Name 1": {
+              "score": <decimal score>,
+              "weight": <weight from criteria>,
+              "feedback": "<specific, detailed feedback>"
+            },
+            "Criterion Name 2": { ... },
+            ...
+          },
+          "total_score": <calculated weighted average>,
+          "comments": "<overall assessment with key strengths and improvement areas>"
+        }
+      PROMPT
+    end
+
     # Mock responses for testing
     def mock_document_response(file_type)
       if file_type == "pdf"
@@ -383,6 +453,104 @@ module Ai
         ## OVERALL ASSESSMENT
         Team #{team_name} has delivered an impressive AI document processing system that effectively solves the challenges of document ingestion and analysis. The attention to both technical excellence and user experience is evident throughout their work. While there are opportunities for enhancement, the current implementation provides a solid foundation for future development.
       SUMMARY
+    end
+
+    def mock_team_evaluation(team_name, criteria)
+      # Create a sample structured response based on the criteria
+      scores = {}
+      total_weighted_score = 0
+      total_weight = 0
+
+      criteria.each do |criterion|
+        name = criterion[:name]
+        weight = criterion[:weight].to_f
+
+        # Generate a sample score between 3.5 and 4.8
+        score = (3.5 + rand * 1.3).round(1)
+
+        scores[name] = {
+          "score" => score,
+          "weight" => weight,
+          "feedback" => "Team #{team_name} #{score >= 4.0 ? 'excelled in' : 'performed well on'} the #{name.downcase} criterion. #{mock_feedback_for_criterion(name, score)}"
+        }
+
+        total_weighted_score += score * weight
+        total_weight += weight
+      end
+
+      average_score = (total_weighted_score / total_weight).round(2)
+
+      # Format the response as JSON
+      JSON.generate({
+        "scores" => scores,
+        "total_score" => average_score,
+        "comments" => "Team #{team_name} achieved an overall score of #{average_score}/5.0, demonstrating #{average_score >= 4.5 ? 'outstanding' : average_score >= 4.0 ? 'excellent' : average_score >= 3.5 ? 'strong' : 'solid'} performance across evaluation criteria. #{mock_overall_feedback(average_score)}"
+      })
+    end
+
+    def mock_feedback_for_criterion(criterion_name, score)
+      case criterion_name.downcase
+      when /innovat/
+        if score >= 4.5
+          "Their solution demonstrates exceptional creativity and novel approaches to solving problems."
+        elsif score >= 4.0
+          "They showed excellent innovation in several aspects of their project implementation."
+        else
+          "They incorporated some innovative elements in their approach."
+        end
+      when /tech/
+        if score >= 4.5
+          "The technical implementation is outstanding, with excellent architecture and code quality."
+        elsif score >= 4.0
+          "The technical execution shows strong engineering principles and good attention to detail."
+        else
+          "The technical implementation is solid with some notable highlights."
+        end
+      when /impact/
+        if score >= 4.5
+          "The potential impact of this solution is substantial, addressing critical needs with a scalable approach."
+        elsif score >= 4.0
+          "This project has significant potential impact in its target domain."
+        else
+          "The solution shows promise for making a positive impact in its field."
+        end
+      when /present/
+        if score >= 4.5
+          "The presentation of their work is exceptionally clear, engaging, and well-structured."
+        elsif score >= 4.0
+          "They presented their work effectively with good clarity and organization."
+        else
+          "The presentation communicates the key points adequately."
+        end
+      when /complete/
+        if score >= 4.5
+          "The project is remarkably complete with all planned features implemented to a high standard."
+        elsif score >= 4.0
+          "The implementation is quite comprehensive with most features fully realized."
+        else
+          "Most core features are implemented, though some areas could be further developed."
+        end
+      else
+        if score >= 4.5
+          "Outstanding performance in this area."
+        elsif score >= 4.0
+          "Excellent work in this criterion."
+        else
+          "Good performance with room for enhancement."
+        end
+      end
+    end
+
+    def mock_overall_feedback(average_score)
+      if average_score >= 4.5
+        "Particularly impressive aspects include their technical implementation and innovative approach. With some minor enhancements to user experience and documentation, this project could have even greater impact."
+      elsif average_score >= 4.0
+        "The team demonstrated strong technical skills and good problem-solving capabilities. Further refinement of the user interface and expanded feature set would strengthen future iterations."
+      elsif average_score >= 3.5
+        "The team shows solid understanding of the problem domain and has created a functional solution. Areas for improvement include technical robustness, feature completeness, and presentation clarity."
+      else
+        "While the core concept shows promise, the team would benefit from addressing implementation quality, feature completeness, and better articulating the project's impact."
+      end
     end
   end
 end

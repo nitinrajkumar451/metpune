@@ -1,0 +1,2 @@
+class JudgingCriterium < ApplicationRecord
+end

@@ -10,9 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_18_173827) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_18_180315) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "judging_criterions", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.decimal "weight", precision: 5, scale: 2, default: "1.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_judging_criterions_on_name", unique: true
+  end
 
   create_table "submissions", force: :cascade do |t|
     t.string "team_name", null: false
@@ -28,6 +37,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_18_173827) do
     t.index ["file_type"], name: "index_submissions_on_file_type"
     t.index ["status"], name: "index_submissions_on_status"
     t.index ["team_name"], name: "index_submissions_on_team_name"
+  end
+
+  create_table "team_evaluations", force: :cascade do |t|
+    t.string "team_name", null: false
+    t.jsonb "scores", default: {}, null: false
+    t.decimal "total_score", precision: 5, scale: 2
+    t.text "comments"
+    t.string "status", default: "pending", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["team_name"], name: "index_team_evaluations_on_team_name", unique: true
   end
 
   create_table "team_summaries", force: :cascade do |t|
