@@ -8,7 +8,7 @@ RSpec.describe Ai::PptxSummarizer do
 
   before do
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(pptx_content)
-    
+
     # Mock HTTParty to avoid actual network requests (for non-error tests)
     allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
   end

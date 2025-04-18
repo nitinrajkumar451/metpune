@@ -20,7 +20,7 @@ namespace :debug do
     puts "Successful submissions: #{Submission.success.count}"
     puts "Failed submissions: #{Submission.failed.count}"
   end
-  
+
   desc "Show recent submissions"
   task show_submissions: :environment do
     puts "Recent submissions:"

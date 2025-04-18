@@ -24,7 +24,7 @@ module Ai
         begin
           # Real implementation - extract and process files
           extracted_content = []
-          
+
           # Create a stream from the file content
           zip_io = StringIO.new(file_content)
           Zip::File.open_buffer(zip_io) do |zip_file|
@@ -33,7 +33,7 @@ module Ai
               extracted_content << extract_from_zip_entry(entry)
             end
           end
-          
+
           # Return the combined extraction results
           extracted_content.join("\n\n")
         rescue StandardError => e
@@ -49,7 +49,7 @@ module Ai
         "- image.jpg: OCR text extracted from the image"
       end
     end
-    
+
     def extract_from_zip_entry(entry)
       # This would actually extract and process each file in production
       # Just a placeholder method for the real implementation

@@ -11,11 +11,11 @@ RSpec.describe IngestDocumentsJob, type: :job do
         # Project1 files
         { name: 'document.pdf', path: "Metathon2025/#{team_folder}/Project1/document.pdf", mime_type: 'application/pdf', id: '123' },
         { name: 'presentation.pptx', path: "Metathon2025/#{team_folder}/Project1/presentation.pptx", mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', id: '456' },
-        
+
         # Project2 files
         { name: 'image.jpg', path: "Metathon2025/#{team_folder}/Project2/image.jpg", mime_type: 'image/jpeg', id: '789' },
         { name: 'archive.zip', path: "Metathon2025/#{team_folder}/Project2/archive.zip", mime_type: 'application/zip', id: '101' },
-        
+
         # Files without project folder (should default to "Default")
         { name: 'unsupported.txt', path: "Metathon2025/#{team_folder}/unsupported.txt", mime_type: 'text/plain', id: '112' }
       ]
@@ -25,10 +25,10 @@ RSpec.describe IngestDocumentsJob, type: :job do
       allow(GoogleDriveService).to receive(:new).and_return(google_drive_service)
       allow(google_drive_service).to receive(:list_team_folders).and_return([ team_folder ])
       allow(google_drive_service).to receive(:list_team_files).with(team_folder).and_return(file_entries)
-      
+
       # Mock download_file for all file types
       allow(google_drive_service).to receive(:download_file).and_return("file content")
-      
+
       # Mock HTTParty for all AI service tests
       allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
     end
@@ -43,21 +43,21 @@ RSpec.describe IngestDocumentsJob, type: :job do
         subject.perform
       }.to change(Submission, :count).by(4) # 4 supported file types
     end
-    
+
     it 'extracts project names from file paths correctly' do
       subject.perform
-      
+
       # Check Project1 files
       pdf_submission = Submission.find_by(filename: 'document.pdf')
       expect(pdf_submission.project).to eq('Project1')
-      
+
       pptx_submission = Submission.find_by(filename: 'presentation.pptx')
       expect(pptx_submission.project).to eq('Project1')
-      
+
       # Check Project2 files
       jpg_submission = Submission.find_by(filename: 'image.jpg')
       expect(jpg_submission.project).to eq('Project2')
-      
+
       zip_submission = Submission.find_by(filename: 'archive.zip')
       expect(zip_submission.project).to eq('Project2')
     end
