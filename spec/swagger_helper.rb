@@ -51,6 +51,18 @@ RSpec.configure do |config|
               updated_at: { type: 'string', format: 'date-time' }
             },
             required: [ 'team_name', 'filename', 'file_type', 'source_url', 'status' ]
+          },
+          TeamSummary: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer' },
+              team_name: { type: 'string' },
+              content: { type: 'string', nullable: true },
+              status: { type: 'string', enum: [ 'pending', 'processing', 'success', 'failed' ] },
+              created_at: { type: 'string', format: 'date-time' },
+              updated_at: { type: 'string', format: 'date-time' }
+            },
+            required: [ 'team_name', 'status' ]
           }
         }
       }

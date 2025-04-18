@@ -63,6 +63,37 @@ module Ai
       end
     end
 
+    def generate_team_summary(team_name, summaries)
+      # Skip API calls in development/test
+      return mock_team_summary(team_name) unless Rails.env.production?
+
+      # Format the summaries as a string with project organization
+      formatted_content = "Team: #{team_name}\n\n"
+
+      # Group summaries by project
+      summaries_by_project = summaries.group_by { |s| s[:project] }
+
+      summaries_by_project.each do |project, project_summaries|
+        formatted_content += "Project: #{project || 'Default'}\n"
+
+        project_summaries.each do |summary|
+          formatted_content += "File: #{summary[:filename]} (#{summary[:file_type]})\n"
+          formatted_content += "Summary: #{summary[:summary]}\n\n"
+        end
+
+        formatted_content += "---\n\n"
+      end
+
+      case @provider
+      when :claude
+        call_claude_api(formatted_content, create_team_summary_prompt)
+      when :openai
+        call_openai_api(formatted_content, create_team_summary_prompt)
+      else
+        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+      end
+    end
+
     private
 
     def default_provider
@@ -226,6 +257,26 @@ module Ai
       end
     end
 
+    def create_team_summary_prompt
+      <<~PROMPT
+        I'll provide you with summaries of multiple documents submitted by a team for their project(s).
+        Please analyze these summaries and create a comprehensive team report that includes:
+
+        1. PRODUCT OBJECTIVE: What appears to be the main goal or product the team is working on
+        2. WINS: Key achievements, successful implementations, or positive outcomes
+        3. CHALLENGES: Difficulties, obstacles, or problems the team encountered
+        4. INNOVATIONS: Unique approaches, creative solutions, or novel ideas
+        5. TECHNICAL HIGHLIGHTS: Notable technical aspects, technologies used, or implementation details
+        6. RECOMMENDATIONS: Constructive suggestions for improvement or future development
+        7. OVERALL ASSESSMENT: A brief evaluation of the team's work as a whole
+
+        Format your report with clear headings. Be specific and reference concrete details from the summaries.
+        Focus on extracting meaningful insights rather than just repeating information.
+
+        If some categories have little relevant information, it's okay to keep them brief or note the lack of data.
+      PROMPT
+    end
+
     # Mock responses for testing
     def mock_document_response(file_type)
       if file_type == "pdf"
@@ -287,6 +338,51 @@ module Ai
         "This content provides information about [generic topic]. Key points include important facts, " +
         "relevant data, and actionable insights that would be useful for understanding the subject matter."
       end
+    end
+
+    def mock_team_summary(team_name)
+      <<~SUMMARY
+        # Team #{team_name} - Comprehensive Report
+
+        ## PRODUCT OBJECTIVE
+        Based on the submitted documents, Team #{team_name} is developing an AI-powered document processing and analysis platform for the Metathon 2025 initiative. The system aims to streamline the ingestion, transcription, and summarization of various document types including PDFs, presentations, images, and archives.
+
+        ## WINS
+        - Successfully implemented document ingestion from Google Drive with 42% efficiency improvement over manual methods
+        - Achieved high accuracy in text extraction across multiple file formats
+        - Developed a robust API that provides both detailed content and concise summaries
+        - Implemented project-based organization for improved team collaboration
+        - Received positive feedback from 89% of test users on the system's usability
+
+        ## CHALLENGES
+        - Integration with existing systems required significant adaptation
+        - Data privacy concerns needed to be addressed throughout development
+        - Processing large ZIP archives and maintaining performance proved difficult
+        - Handling multiple file types required specialized AI models and approaches
+
+        ## INNOVATIONS
+        - Created a multi-provider AI system that works with both Claude and OpenAI
+        - Designed file type-specific prompts to generate more relevant summaries
+        - Implemented a novel approach to ZIP archive processing that maintains context
+        - Developed a hierarchical summarization system that works at file, project, and team levels
+
+        ## TECHNICAL HIGHLIGHTS
+        - Built on Rails 8.0.2 with PostgreSQL for robust data handling
+        - Implemented background processing with Sidekiq for asynchronous document handling
+        - Integrated with Google Drive API for seamless document access
+        - Utilized advanced AI models for content extraction and summarization
+        - Employed Test-Driven Development throughout the project
+
+        ## RECOMMENDATIONS
+        - Consider adding multi-language support for broader applicability
+        - Implement additional security measures for handling sensitive documents
+        - Explore real-time collaboration features to enhance team workflows
+        - Add visualization tools for better data representation
+        - Consider scaling infrastructure to handle larger document volumes
+
+        ## OVERALL ASSESSMENT
+        Team #{team_name} has delivered an impressive AI document processing system that effectively solves the challenges of document ingestion and analysis. The attention to both technical excellence and user experience is evident throughout their work. While there are opportunities for enhancement, the current implementation provides a solid foundation for future development.
+      SUMMARY
     end
   end
 end
