@@ -1,0 +1,14 @@
+---
+:concurrency: 5
+:timeout: 300
+:max_retries: 3
+:queues:
+  - [critical, 3]
+  - [default, 2]
+  - [low, 1]
+staging:
+  :concurrency: 10
+production:
+  :concurrency: 20
+:pid: tmp/pids/sidekiq.pid
+:logfile: log/sidekiq.log
