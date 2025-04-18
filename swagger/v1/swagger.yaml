@@ -244,6 +244,80 @@ paths:
                     type: string
                 required:
                 - error
+  "/api/hackathon_insights":
+    get:
+      summary: Gets the latest hackathon trends analysis
+      tags:
+      - Hackathon Insights
+      responses:
+        '200':
+          description: hackathon insights found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/HackathonInsight"
+        '404':
+          description: no successful insights found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+  "/api/hackathon_insights/markdown":
+    get:
+      summary: Gets the latest hackathon trends analysis in markdown format
+      tags:
+      - Hackathon Insights
+      responses:
+        '200':
+          description: hackathon insights found
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          description: no successful insights found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+  "/api/hackathon_insights/generate":
+    post:
+      summary: Generates trends analysis across all team summaries
+      tags:
+      - Hackathon Insights
+      responses:
+        '200':
+          description: hackathon insights generation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+        '400':
+          description: invalid request (e.g., no successful team summaries found)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
 servers:
 - url: http://localhost:3000
   description: Development server
@@ -324,4 +398,27 @@ components:
           format: date-time
       required:
       - team_name
+      - status
+    HackathonInsight:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
       - status
