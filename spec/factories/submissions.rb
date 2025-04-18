@@ -2,6 +2,7 @@ FactoryBot.define do
   factory :submission do
     team_name { Faker::Team.name }
     filename { Faker::File.file_name }
+    file_type { 'pdf' } # Default file type
     sequence(:source_url) { |n| "https://drive.google.com/file/d/#{n}" }
     raw_text { Faker::Lorem.paragraphs(number: 3).join("\n\n") }
     status { 'pending' }

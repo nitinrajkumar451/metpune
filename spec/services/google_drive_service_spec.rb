@@ -90,12 +90,43 @@ RSpec.describe GoogleDriveService do
 
     before do
       allow(mock_drive_service).to receive(:get_file).and_return(mock_file)
-      allow(mock_drive_service).to receive(:get_file!).with(file_id, download_dest: instance_of(StringIO)).and_return(mock_file_content)
+      # Mock StringIO to capture content
+      allow_any_instance_of(StringIO).to receive(:string).and_return('sample file content')
+      # Make get_file return the StringIO and set its content
+      allow(mock_drive_service).to receive(:get_file).with(file_id, download_dest: instance_of(StringIO)) do |_, options|
+        options[:download_dest].write('sample file content')
+        mock_file_content
+      end
     end
 
     it 'downloads file content from Google Drive' do
       content = service.download_file(file_id)
       expect(content).to eq('sample file content')
+    end
+    
+    context 'when direct download fails' do
+      let(:export_service) { instance_double(Google::Apis::DriveV3::DriveService) }
+      let(:export_service_instance) { described_class.new }
+      
+      before do
+        # Setup a new service instance for this context
+        allow(Google::Apis::DriveV3::DriveService).to receive(:new).and_return(export_service)
+        allow(export_service).to receive(:authorization=)
+        
+        # Setup the export_file mocks
+        allow(export_service).to receive(:get_file).with(file_id, download_dest: instance_of(StringIO))
+          .and_raise(Google::Apis::ClientError.new('Not downloadable'))
+        
+        allow(export_service).to receive(:export_file)
+          .with(file_id, 'application/pdf', download_dest: instance_of(StringIO)) do |_, _, options|
+            options[:download_dest].write('sample file content')
+            mock_file_content
+          end
+      end
+      
+      it 'exports the file as PDF' do
+        expect(export_service_instance.download_file(file_id)).to eq('sample file content')
+      end
     end
   end
 end

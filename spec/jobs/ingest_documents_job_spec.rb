@@ -20,6 +20,12 @@ RSpec.describe IngestDocumentsJob, type: :job do
       allow(GoogleDriveService).to receive(:new).and_return(google_drive_service)
       allow(google_drive_service).to receive(:list_team_folders).and_return([ team_folder ])
       allow(google_drive_service).to receive(:list_team_files).with(team_folder).and_return(file_entries)
+      
+      # Mock download_file for all file types
+      allow(google_drive_service).to receive(:download_file).and_return("file content")
+      
+      # Mock HTTParty for all AI service tests
+      allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
     end
 
     it 'fetches team folders from Google Drive' do
@@ -34,17 +40,17 @@ RSpec.describe IngestDocumentsJob, type: :job do
     end
 
     it 'enqueues processing jobs for each file type' do
-      allow(AI::PdfExtractor).to receive(:new).and_return(double(process: 'PDF text'))
-      allow(AI::PptxSummarizer).to receive(:new).and_return(double(process: 'PPT summary'))
-      allow(AI::OcrExtractor).to receive(:new).and_return(double(process: 'OCR text'))
-      allow(AI::ZipProcessor).to receive(:new).and_return(double(process: 'ZIP contents'))
+      allow(Ai::PdfExtractor).to receive(:new).and_return(double(process: 'PDF text'))
+      allow(Ai::PptxSummarizer).to receive(:new).and_return(double(process: 'PPT summary'))
+      allow(Ai::OcrExtractor).to receive(:new).and_return(double(process: 'OCR text'))
+      allow(Ai::ZipProcessor).to receive(:new).and_return(double(process: 'ZIP contents'))
 
       subject.perform
 
-      expect(AI::PdfExtractor).to have_received(:new)
-      expect(AI::PptxSummarizer).to have_received(:new)
-      expect(AI::OcrExtractor).to have_received(:new)
-      expect(AI::ZipProcessor).to have_received(:new)
+      expect(Ai::PdfExtractor).to have_received(:new)
+      expect(Ai::PptxSummarizer).to have_received(:new)
+      expect(Ai::OcrExtractor).to have_received(:new)
+      expect(Ai::ZipProcessor).to have_received(:new)
     end
 
     it 'ignores unsupported file types' do
@@ -54,7 +60,7 @@ RSpec.describe IngestDocumentsJob, type: :job do
     end
 
     it 'updates submission status after processing' do
-      allow(AI::PdfExtractor).to receive(:new).and_return(double(process: 'PDF text'))
+      allow(Ai::PdfExtractor).to receive(:new).and_return(double(process: 'PDF text'))
 
       subject.perform
 
@@ -64,8 +70,8 @@ RSpec.describe IngestDocumentsJob, type: :job do
     end
 
     it 'marks submission as failed when processing errors occur' do
-      allow(AI::PdfExtractor).to receive(:new).and_return(double(process: nil))
-      allow(AI::PdfExtractor).to receive_message_chain(:new, :process).and_raise(StandardError.new('Processing failed'))
+      allow(Ai::PdfExtractor).to receive(:new).and_return(double(process: nil))
+      allow(Ai::PdfExtractor).to receive_message_chain(:new, :process).and_raise(StandardError.new('Processing failed'))
 
       subject.perform
 

@@ -65,7 +65,13 @@ class GoogleDriveService
 
   def download_file(file_id)
     content_io = StringIO.new
-    @drive_service.get_file!(file_id, download_dest: content_io)
+    begin
+      # Try direct download first
+      @drive_service.get_file(file_id, download_dest: content_io)
+    rescue Google::Apis::ClientError => e
+      # If it's a Google Document, try to export it as PDF
+      @drive_service.export_file(file_id, 'application/pdf', download_dest: content_io)
+    end
     content_io.string
   end
 

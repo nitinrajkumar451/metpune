@@ -45,6 +45,9 @@ gem "google-drive-ruby"
 # For AI transcription (can be mocked in tests)
 gem "httparty"
 
+# For handling zip files
+gem "rubyzip"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -61,4 +64,8 @@ group :development, :test do
   gem "faker"
   gem "database_cleaner-active_record"
   gem "rspec-sidekiq"
+end
+
+group :test do
+  gem 'shoulda-matchers', '~> 5.0'
 end

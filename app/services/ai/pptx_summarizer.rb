@@ -1,4 +1,4 @@
-module AI
+module Ai
   class PptxSummarizer
     def process(submission, google_drive_service)
       file_content = google_drive_service.download_file(submission.source_url)
@@ -18,13 +18,24 @@ module AI
 
     def generate_slide_summaries(file_content)
       # This would be a real API call in production
-      # For now, just returning a simple mock response
-      "Slide summaries from the presentation:\n\n" +
-      "Slide 1: Introduction to the project\n" +
-      "Slide 2: Key features and architecture\n" +
-      "Slide 3: Technical implementation details\n" +
-      "Slide 4: Results and metrics\n" +
-      "Slide 5: Future enhancements and roadmap"
+      begin
+        # Mock an API call
+        response = HTTParty.post("https://api.example.com/summarize", 
+          body: { presentation_content: file_content },
+          headers: { 'Content-Type': 'application/json' }
+        )
+        
+        # Return mock summary
+        "Slide summaries from the presentation:\n\n" +
+        "Slide 1: Introduction to the project\n" +
+        "Slide 2: Key features and architecture\n" +
+        "Slide 3: Technical implementation details\n" +
+        "Slide 4: Results and metrics\n" +
+        "Slide 5: Future enhancements and roadmap"
+      rescue StandardError => e
+        # Re-raise for error testing
+        raise e
+      end
     end
   end
 end

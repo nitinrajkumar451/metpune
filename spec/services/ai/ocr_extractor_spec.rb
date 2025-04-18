@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe AI::OcrExtractor do
+RSpec.describe Ai::OcrExtractor do
   let(:extractor) { described_class.new }
   let(:submission) { create(:submission, :jpg) }
   let(:google_drive_service) { instance_double(GoogleDriveService) }
@@ -8,6 +8,9 @@ RSpec.describe AI::OcrExtractor do
 
   before do
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(image_content)
+    
+    # Mock HTTParty to avoid actual network requests (for non-error tests)
+    allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
   end
 
   describe '#process' do

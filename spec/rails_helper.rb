@@ -18,6 +18,10 @@ require 'shoulda/matchers'
 # Load support files
 Dir[Rails.root.join('spec/support/**/*.rb')].each { |f| require f }
 
+# Load services
+require Rails.root.join('app/services/ai')
+Dir[Rails.root.join('app/services/ai/*.rb')].each { |f| require f }
+
 # Configure Shoulda Matchers
 Shoulda::Matchers.configure do |config|
   config.integrate do |with|

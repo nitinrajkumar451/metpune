@@ -55,13 +55,13 @@ class IngestDocumentsJob < ApplicationJob
   def processor_for_file_type(file_type)
     case file_type
     when "pdf", "docx"
-      AI::PdfExtractor.new
+      Ai::PdfExtractor.new
     when "pptx"
-      AI::PptxSummarizer.new
+      Ai::PptxSummarizer.new
     when "jpg", "png"
-      AI::OcrExtractor.new
+      Ai::OcrExtractor.new
     when "zip"
-      AI::ZipProcessor.new
+      Ai::ZipProcessor.new
     else
       raise ArgumentError, "Unsupported file type: #{file_type}"
     end
