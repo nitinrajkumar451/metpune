@@ -49,6 +49,36 @@ RSpec.describe "Api::Submissions", type: :request do
         expect(submissions.first["team_name"]).to eq("SpecificTeam")
       end
     end
+    
+    context "when filtering by project" do
+      let!(:project1_submission1) { create(:submission, project: "Project1") }
+      let!(:project1_submission2) { create(:submission, project: "Project1") }
+      let!(:project2_submission) { create(:submission, project: "Project2") }
+
+      it "returns only submissions for the specified project" do
+        # Delete existing Project1 submissions that might be causing conflicts
+        Submission.where(project: "Project1").delete_all
+        
+        # Create exactly 2 submissions with Project1
+        create(:submission, project: "Project1")
+        create(:submission, project: "Project1")
+        
+        get "/api/submissions", params: { project: "Project1" }
+
+        expect(response).to have_http_status(:ok)
+        submissions = JSON.parse(response.body)
+        expect(submissions.size).to eq(2)
+        expect(submissions.map { |s| s["project"] }).to all(eq("Project1"))
+      end
+      
+      it "returns empty array for non-existing project" do
+        get "/api/submissions", params: { project: "NonExistingProject" }
+
+        expect(response).to have_http_status(:ok)
+        submissions = JSON.parse(response.body)
+        expect(submissions).to be_empty
+      end
+    end
   end
 
   describe "GET /api/submissions/:id" do

@@ -28,11 +28,17 @@ class IngestDocumentsJob < ApplicationJob
       file_type = SUPPORTED_FILE_TYPES[file[:mime_type]]
       next unless file_type
 
+      # Extract project name from the file path
+      # Path format is: Metathon2025/TeamName/ProjectName/FileName
+      path_parts = file[:path].split('/')
+      project = path_parts.length >= 3 ? path_parts[-2] : "Default"
+      
       submission = Submission.create!(
         team_name: team_folder,
         filename: file[:name],
         file_type: file_type,
         source_url: file[:id],
+        project: project,
         status: "processing"
       )
 

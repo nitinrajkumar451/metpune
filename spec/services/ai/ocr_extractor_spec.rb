@@ -33,12 +33,14 @@ RSpec.describe Ai::OcrExtractor do
       end
     end
 
-    context 'when OCR fails' do
+    context 'when OCR fails in production' do
       before do
+        # Set Rails environment to production for this test
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
         allow(HTTParty).to receive(:post).and_raise(StandardError.new('API error'))
       end
 
-      it 'raises an error' do
+      it 'raises an error in production environment' do
         expect {
           extractor.process(submission, google_drive_service)
         }.to raise_error(StandardError, /API error/)

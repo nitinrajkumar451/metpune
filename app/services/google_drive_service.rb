@@ -68,15 +68,32 @@ class GoogleDriveService
         }
       end
     else
-      # In development/test, return mock data
-      mock_files = [
-        { id: 'file1', name: 'document.pdf', mime_type: 'application/pdf', path: "Metathon2025/#{team_name}/document.pdf" },
-        { id: 'file2', name: 'presentation.pptx', mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', path: "Metathon2025/#{team_name}/presentation.pptx" },
-        { id: 'file3', name: 'image.jpg', mime_type: 'image/jpeg', path: "Metathon2025/#{team_name}/image.jpg" },
-        { id: 'file4', name: 'document.docx', mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', path: "Metathon2025/#{team_name}/document.docx" },
-        { id: 'file5', name: 'image.png', mime_type: 'image/png', path: "Metathon2025/#{team_name}/image.png" },
-        { id: 'file6', name: 'archive.zip', mime_type: 'application/zip', path: "Metathon2025/#{team_name}/archive.zip" }
+      # In development/test, return mock data representing multiple files
+      # Each team has a project folder with multiple files inside
+      mock_files = []
+      
+      # Project 1 files
+      project1_files = [
+        { id: "#{team_name}_proj1_file1", name: 'project_description.pdf', mime_type: 'application/pdf', path: "Metathon2025/#{team_name}/Project1/project_description.pdf" },
+        { id: "#{team_name}_proj1_file2", name: 'presentation.pptx', mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', path: "Metathon2025/#{team_name}/Project1/presentation.pptx" },
+        { id: "#{team_name}_proj1_file3", name: 'architecture_diagram.jpg', mime_type: 'image/jpeg', path: "Metathon2025/#{team_name}/Project1/architecture_diagram.jpg" }
       ]
+      
+      # Project 2 files
+      project2_files = [
+        { id: "#{team_name}_proj2_file1", name: 'technical_specs.docx', mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', path: "Metathon2025/#{team_name}/Project2/technical_specs.docx" },
+        { id: "#{team_name}_proj2_file2", name: 'screenshot.png', mime_type: 'image/png', path: "Metathon2025/#{team_name}/Project2/screenshot.png" }
+      ]
+      
+      # Source code archive
+      source_code = [
+        { id: "#{team_name}_src_file1", name: 'source_code.zip', mime_type: 'application/zip', path: "Metathon2025/#{team_name}/SourceCode/source_code.zip" }
+      ]
+      
+      # Add all files to the mock files list
+      mock_files.concat(project1_files)
+      mock_files.concat(project2_files)
+      mock_files.concat(source_code)
       
       mock_files
     end

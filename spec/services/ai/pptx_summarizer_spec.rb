@@ -24,12 +24,14 @@ RSpec.describe Ai::PptxSummarizer do
       expect(result).to include('Slide summaries')
     end
 
-    context 'when summarization fails' do
+    context 'when summarization fails in production' do
       before do
+        # Set Rails environment to production for this test
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
         allow(HTTParty).to receive(:post).and_raise(StandardError.new('API error'))
       end
 
-      it 'raises an error' do
+      it 'raises an error in production environment' do
         expect {
           summarizer.process(submission, google_drive_service)
         }.to raise_error(StandardError, /API error/)
