@@ -10,9 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_18_180315) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_18_195837) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "hackathon_insights", force: :cascade do |t|
+    t.text "content"
+    t.string "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "judging_criterions", force: :cascade do |t|
     t.string "name", null: false
@@ -37,6 +44,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_18_180315) do
     t.index ["file_type"], name: "index_submissions_on_file_type"
     t.index ["status"], name: "index_submissions_on_status"
     t.index ["team_name"], name: "index_submissions_on_team_name"
+  end
+
+  create_table "team_blogs", force: :cascade do |t|
+    t.string "team_name"
+    t.text "content"
+    t.string "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "team_evaluations", force: :cascade do |t|

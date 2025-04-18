@@ -119,6 +119,47 @@ module Ai
       end
     end
 
+    def generate_team_blog(team_name, team_summary)
+      # Skip API calls in development/test
+      return mock_team_blog(team_name) unless Rails.env.production?
+
+      # Format the content for blog generation
+      formatted_content = "Team: #{team_name}\n\n"
+      formatted_content += "Team Summary:\n#{team_summary}\n\n"
+
+      case @provider
+      when :claude
+        call_claude_api(formatted_content, create_blog_prompt)
+      when :openai
+        call_openai_api(formatted_content, create_blog_prompt)
+      else
+        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+      end
+    end
+
+    def generate_hackathon_insights(team_summaries)
+      # Skip API calls in development/test
+      return mock_hackathon_insights unless Rails.env.production?
+
+      # Format all team summaries for analysis
+      formatted_content = "Hackathon Team Summaries:\n\n"
+
+      team_summaries.each do |summary|
+        formatted_content += "Team: #{summary.team_name}\n"
+        formatted_content += "Summary:\n#{summary.content}\n\n"
+        formatted_content += "---\n\n"
+      end
+
+      case @provider
+      when :claude
+        call_claude_api(formatted_content, create_hackathon_insights_prompt)
+      when :openai
+        call_openai_api(formatted_content, create_hackathon_insights_prompt)
+      else
+        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+      end
+    end
+
     private
 
     def default_provider
@@ -347,6 +388,74 @@ module Ai
       PROMPT
     end
 
+    def create_blog_prompt
+      <<~PROMPT
+        You're an expert technical content writer for hackathons. Using the structured input below, generate a blog post in Markdown format. Follow the given blog structure template. Make the tone engaging, informative, and a bit celebratory. The goal is to showcase the team and their work clearly to a technical and general audience.
+
+        Use this structure:
+
+        Title
+
+        Introduction
+
+        The Problem They Tackled
+
+        Their Solution
+
+        Key Features
+
+        Tech Stack
+
+        Learnings & Wins
+
+        Mishaps & Challenges
+
+        What's Next
+
+        AI's Take (Appreciation)
+
+        Final Thoughts
+
+        Include a frontmatter block with the title, author (team name), tags, and date.
+
+        Be specific and detailed, using information from the team summary to craft a compelling narrative.
+        Ensure the blog post is well-formatted in Markdown, with appropriate headers, bullet points, and emphasis.
+        Focus on the technical aspects of the project while making it accessible to a wider audience.
+        Include at least 3-5 sentences per section to provide adequate depth.
+
+        Today's date is: #{Date.today.strftime('%B %d, %Y')}
+      PROMPT
+    end
+
+    def create_hackathon_insights_prompt
+      <<~PROMPT
+        You're an expert in analyzing hackathon and innovation trends. Review the team summaries from this hackathon to create a comprehensive trends analysis in Markdown format.#{' '}
+
+        Analyze across all teams and identify patterns in:
+
+        1. Technologies: Common tech stacks, frameworks, languages, and tools used
+        2. Problem Domains: Recurring themes in the problems teams chose to tackle
+        3. AI Use Cases: How AI/ML was utilized across different projects
+        4. Approaches: Common methodologies, architectures, or techniques
+        5. Challenges: Recurring obstacles teams faced
+        6. Collaboration Patterns: Team dynamics and work distribution trends
+        7. Innovation Trends: Novel or unexpected approaches that stood out
+
+        For each area, include:
+        - The 3-5 most prevalent trends with specific examples from teams
+        - Any outliers or unique approaches worth highlighting
+        - Brief analysis of why these trends emerged (industry influence, hackathon constraints, etc.)
+
+        Format your response as a well-structured Markdown document with appropriate headings, subheadings, lists, and emphasis. Start with an executive summary of the key findings.
+
+        Include a section that highlights particularly innovative or effective approaches from specific teams.
+
+        End with recommendations for future hackathons based on these insights.
+
+        Today's date is: #{Date.today.strftime('%B %d, %Y')}
+      PROMPT
+    end
+
     # Mock responses for testing
     def mock_document_response(file_type)
       if file_type == "pdf"
@@ -551,6 +660,210 @@ module Ai
       else
         "While the core concept shows promise, the team would benefit from addressing implementation quality, feature completeness, and better articulating the project's impact."
       end
+    end
+
+    def mock_team_blog(team_name)
+      todays_date = Date.today.strftime("%Y-%m-%d")
+
+      <<~MARKDOWN
+        ---
+        title: "Innovating Document Analysis: #{team_name}'s Hackathon Journey"
+        author: "#{team_name}"
+        date: "#{todays_date}"
+        tags: ["hackathon", "AI", "document-processing", "innovation"]
+        ---
+
+        # Innovating Document Analysis: #{team_name}'s Hackathon Journey
+
+        ## Introduction
+
+        In the fast-paced world of document management and analysis, the need for intelligent, automated solutions has never been greater. Enter #{team_name}, a talented group of developers who tackled this challenge head-on during the recent Metathon 2025. Their journey from concept to functional prototype showcases not only technical prowess but also a deep understanding of user needs in the document processing space. This blog post highlights their innovative approach, the challenges they overcame, and the impressive solution they built in a limited timeframe.
+
+        ## The Problem They Tackled
+
+        Organizations today are drowning in documents - PDFs, presentations, images, and archives that contain valuable information but are difficult to process efficiently. Manual extraction and analysis of these documents is time-consuming, error-prone, and doesn't scale. #{team_name} identified several key pain points: the inconsistent format of documents, the lack of context when analyzing individual files, and the absence of intelligent summarization that could provide actionable insights. Without a unified system to handle various document types and generate meaningful summaries, teams waste countless hours on low-value tasks instead of focusing on strategic decision-making.
+
+        ## Their Solution
+
+        #{team_name} developed an AI-powered document ingestion and analysis platform that transforms how teams interact with their document repositories. Their system seamlessly connects with Google Drive to import documents, then employs specialized AI models to extract and process text based on file type. What sets their solution apart is the hierarchical summarization approach - individual documents are summarized first, then these summaries are analyzed collectively to generate comprehensive team-level insights. This multi-tiered approach ensures that context is preserved while still distilling information down to its most valuable components.
+
+        ## Key Features
+
+        - **Multi-format Support**: The system handles various file types including PDFs, presentations, images, and ZIP archives, each with specialized processing techniques.
+        - **Hierarchical Summarization**: Documents are summarized individually, then grouped by project, and finally synthesized into team-level reports.
+        - **AI-Powered Evaluation**: The platform includes a sophisticated judging system that can evaluate teams based on customizable criteria with weighted scoring.
+        - **Background Processing**: All resource-intensive tasks run asynchronously, ensuring responsive user experience even with large document sets.
+        - **Comprehensive API**: A well-designed REST API allows easy integration with existing systems and workflows.
+        - **Leaderboard Generation**: Teams can be ranked based on their evaluation scores, perfect for hackathons and competitions.
+
+        ## Tech Stack
+
+        #{team_name} built their solution using a robust and modern technology stack. The backend is powered by Rails 8.0.2 with PostgreSQL for data storage, providing a solid foundation for the application. For AI capabilities, they implemented a dual-provider system that works with both Claude and OpenAI models, allowing for flexibility and failover options. Background processing is handled by Sidekiq, ensuring that resource-intensive tasks don't block the main application thread. The codebase follows test-driven development practices with RSpec for comprehensive test coverage. For document extraction, they employed specialized libraries for each file type, creating a unified interface for the rest of the system.
+
+        ## Learnings & Wins
+
+        The team achieved several significant wins during their development journey. Their document ingestion system demonstrated a 42% efficiency improvement over manual methods, a substantial gain for any organization dealing with large document volumes. The team collaboration features received positive feedback from 89% of test users, indicating strong usability. Perhaps most impressively, they successfully implemented a complex AI pipeline that maintains context across different levels of summarization, something that many larger systems struggle with. The team also learned valuable lessons about prompt engineering for different AI models and how to optimize extraction for various document formats.
+
+        ## Mishaps & Challenges
+
+        No innovative project comes without obstacles, and #{team_name} faced their share of challenges. Integration with existing systems required more adaptation than initially anticipated, especially around authentication and permission management. Data privacy concerns needed careful consideration throughout development, adding complexity to the storage and processing pipeline. One particularly stubborn issue was processing large ZIP archives while maintaining performance, which required creative caching and streaming solutions. Additionally, handling multiple file types necessitated specialized AI models and approaches, increasing the complexity of the system architecture.
+
+        ## What's Next
+
+        Looking forward, #{team_name} has identified several exciting enhancement opportunities. Adding multi-language support would dramatically increase the platform's applicability across global organizations. Implementing additional security measures for handling sensitive documents would open doors to industries with strict compliance requirements. They're also exploring real-time collaboration features to further enhance team workflows, and visualization tools to better represent the insights extracted from documents. As the system scales to handle larger document volumes, infrastructure optimizations will become increasingly important.
+
+        ## AI's Take (Appreciation)
+
+        As an AI system myself, I'm particularly impressed by #{team_name}'s thoughtful implementation of AI capabilities. Their multi-provider approach shows foresight in leveraging the strengths of different models while maintaining a consistent interface. The file type-specific prompts demonstrate a nuanced understanding of how to get the best results from AI systems like me. What's especially noteworthy is their hierarchical summarization system, which mirrors how human experts would approach document analysis - starting with details and progressively synthesizing higher-level insights. This human-centered design approach to AI implementation sets their project apart.
+
+        ## Final Thoughts
+
+        #{team_name}'s project represents the best of what hackathons can produce - innovative solutions to real-world problems, implemented with technical excellence and user experience in mind. Their AI document processing platform showcases not just coding ability, but a deep understanding of the problem domain and thoughtful system design. While developed in a hackathon setting, their solution has the foundations of a production-ready system that could bring significant value to organizations drowning in document overload. Their journey reminds us that with the right combination of technical skills, domain knowledge, and creative problem-solving, impressive results can be achieved even within tight timeframes.
+      MARKDOWN
+    end
+
+    def mock_hackathon_insights
+      todays_date = Date.today.strftime("%B %d, %Y")
+
+      <<~MARKDOWN
+        # Hackathon Trends Analysis
+
+        *Generated on #{todays_date}*
+
+        ## Executive Summary
+
+        This analysis examines the patterns and trends across all teams participating in the hackathon. Overall, we observed a strong focus on AI-powered solutions, particularly in document processing and analysis domains. Most teams utilized modern web frameworks combined with AI services, with Ruby on Rails and React being particularly popular choices. Common challenges included API integration issues and balancing feature scope with time constraints. Innovation was highest in the application of AI for specialized document understanding and in creating intuitive user experiences for complex data.
+
+        ## Technologies
+
+        ### Prevalent Tech Stacks
+
+        1. **Backend Frameworks**
+           - **Ruby on Rails**: Used by approximately 40% of teams for rapid API development
+           - **Node.js/Express**: Popular among teams focusing on real-time features
+           - **Django/Flask**: Chosen by teams with Python-heavy AI components
+
+        2. **Frontend Technologies**
+           - **React.js**: Dominant choice (60% of teams) for building interactive interfaces
+           - **Vue.js**: Preferred by teams valuing simplicity and quick setup
+           - **Tailwind CSS**: Increasingly popular for responsive designs without custom CSS
+
+        3. **AI/ML Services**
+           - **Claude/Anthropic APIs**: Widely used for document understanding tasks
+           - **OpenAI GPT**: Common choice for text generation and summarization
+           - **Custom ML Models**: Few teams (about 15%) implemented specialized models
+
+        4. **Database Solutions**
+           - **PostgreSQL**: Most common relational database choice
+           - **MongoDB**: Used by teams requiring more flexible schema
+
+        ### Outliers
+
+        - One team employed Rust for performance-critical components of their document processing pipeline
+        - A standout team built their entire solution using WebAssembly for client-side document processing without cloud dependencies
+
+        ## Problem Domains
+
+        ### Common Themes
+
+        1. **Document Management** (45% of projects)
+           - Intelligent organization and retrieval systems
+           - Automated classification and tagging
+
+        2. **Knowledge Extraction** (30% of projects)
+           - Transforming unstructured documents into structured data
+           - Creating searchable knowledge bases from document repositories
+
+        3. **Collaboration Tools** (25% of projects)
+           - Real-time document editing with AI assistance
+           - Team-based document analysis and annotation
+
+        ## AI Use Cases
+
+        ### Primary Applications
+
+        1. **Text Extraction and OCR**
+           - Converting images and PDFs to machine-readable text
+           - Handling complex layouts and tables
+
+        2. **Summarization**
+           - Multi-level summarization (document, project, team)
+           - Context-aware executive summaries
+
+        3. **Content Generation**
+           - Creating blogs, reports, and presentations from raw data
+           - Generating insights from document collections
+
+        4. **Evaluation and Scoring**
+           - Assessing document quality and completeness
+           - Providing feedback on technical content
+
+        ## Approaches
+
+        ### Methodologies
+
+        1. **Microservices Architecture** (35% of teams)
+           - Separate services for document processing, AI analysis, and user interfaces
+           - API-first designs for flexibility
+
+        2. **Monolithic Applications** (40% of teams)
+           - Integrated solutions with all components in one codebase
+           - Faster initial development but less scalable
+
+        3. **Hybrid Cloud/Local Processing** (25% of teams)
+           - Local preprocessing combined with cloud-based AI
+           - Optimized for performance and cost
+
+        ## Challenges
+
+        ### Common Obstacles
+
+        1. **AI API Rate Limits and Costs**
+           - Teams struggled with balancing quality and API usage
+           - Several implemented clever caching strategies
+
+        2. **Processing Large Documents**
+           - Handling memory constraints with large PDFs and archives
+           - Chunking strategies varied widely in effectiveness
+
+        3. **UI/UX for Complex Data**
+           - Making complex document insights accessible to users
+           - Simplifying interactions with AI-generated content
+
+        ## Innovation Highlights
+
+        ### Standout Approaches
+
+        1. **Team Alpha's Document Stream Processing**
+           - Innovative approach to handling document chunks in parallel
+           - Maintained context across processing boundaries
+
+        2. **Team Beta's Multi-Modal Understanding**
+           - Combined text, image, and layout analysis in a single pipeline
+           - Achieved 40% better accuracy on complex documents
+
+        3. **Team Gamma's Collaborative Annotation**
+           - Real-time shared document annotation with AI suggestions
+           - Novel conflict resolution mechanism
+
+        ## Recommendations for Future Hackathons
+
+        1. **Provide Specialized AI Access**
+           - Dedicated API access would allow teams to focus on innovation rather than API limits
+
+        2. **Encourage Cross-Domain Collaboration**
+           - Teams with diverse skills (UI/UX, AI, backend) produced the most complete solutions
+
+        3. **Emphasize User Testing**
+           - Projects that included user feedback iterations showed better overall results
+
+        4. **Starter Templates**
+           - Provide authentication and basic API setups to let teams focus on core innovation
+
+        5. **Longer Hackathon Duration**
+           - Complex AI applications benefit from more iteration time
+           - Consider multi-weekend formats with check-ins
+      MARKDOWN
     end
   end
 end

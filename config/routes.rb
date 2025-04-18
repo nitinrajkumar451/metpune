@@ -76,5 +76,16 @@ Rails.application.routes.draw do
     get "/team_evaluations/:team_name", to: "team_evaluations#show"
     post "/team_evaluations/generate", to: "team_evaluations#generate"
     get "/leaderboard", to: "team_evaluations#leaderboard"
+
+    # Team blogs endpoints
+    resources :team_blogs, only: [ :index ]
+    get "/team_blogs/:team_name", to: "team_blogs#show"
+    get "/team_blogs/:team_name/markdown", to: "team_blogs#markdown"
+    post "/team_blogs/generate", to: "team_blogs#generate"
+
+    # Hackathon insights endpoints
+    get "/hackathon_insights", to: "hackathon_insights#index"
+    get "/hackathon_insights/markdown", to: "hackathon_insights#markdown"
+    post "/hackathon_insights/generate", to: "hackathon_insights#generate"
   end
 end
