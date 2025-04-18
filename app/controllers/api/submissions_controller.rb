@@ -6,6 +6,7 @@ module Api
       # Apply filters if provided
       submissions = submissions.where(status: params[:status]) if params[:status].present?
       submissions = submissions.where(team_name: params[:team_name]) if params[:team_name].present?
+      submissions = submissions.where(project: params[:project]) if params[:project].present?
 
       render json: submissions
     end

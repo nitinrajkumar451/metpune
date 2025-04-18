@@ -24,21 +24,16 @@ RSpec.describe Ai::ZipProcessor do
       expect(result).to include('Extracted ZIP contents')
     end
 
-    context 'when ZIP processing fails' do
+    context 'when ZIP processing fails in production' do
       before do
-        # Set thread local to trigger error in the implementation
-        Thread.current[:zip_error_test] = true
+        # Set Rails environment to production for this test
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
         
-        # Ensure the error is raised correctly
-        allow(HTTParty).to receive(:post).and_raise(StandardError.new('API error'))
-      end
-      
-      after do
-        # Clean up thread local
-        Thread.current[:zip_error_test] = nil
+        # Ensure the error is raised correctly in production
+        allow(Zip::File).to receive(:open_buffer).and_raise(StandardError.new('API error'))
       end
 
-      it 'raises an error' do
+      it 'raises an error in production environment' do
         expect {
           processor.process(submission, google_drive_service)
         }.to raise_error(StandardError, /API error/)

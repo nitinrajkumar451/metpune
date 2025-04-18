@@ -10,6 +10,8 @@ RSpec.describe Submission, type: :model do
 
     it { should validate_inclusion_of(:file_type).in_array([ 'pdf', 'pptx', 'docx', 'jpg', 'png', 'zip' ]) }
     it { should validate_inclusion_of(:status).in_array([ 'pending', 'processing', 'success', 'failed' ]) }
+    
+    it { should validate_length_of(:project).is_at_most(255) }
   end
 
   describe 'defaults' do
@@ -21,10 +23,19 @@ RSpec.describe Submission, type: :model do
 
   describe 'scopes' do
     before do
-      create(:submission, status: 'pending')
-      create(:submission, status: 'processing')
-      create(:submission, status: 'success')
-      create(:submission, status: 'failed')
+      # Clear existing submissions to avoid test interference
+      Submission.delete_all
+      
+      # Create submissions with specific statuses
+      create(:submission, status: 'pending', project: nil)
+      create(:submission, status: 'processing', project: nil)
+      create(:submission, status: 'success', project: nil)
+      create(:submission, status: 'failed', project: nil)
+      
+      # Create submissions with specific projects
+      create(:submission, status: 'success', project: 'Project1')
+      create(:submission, status: 'success', project: 'Project1')
+      create(:submission, status: 'success', project: 'Project2')
     end
 
     it 'returns pending submissions' do
@@ -36,11 +47,24 @@ RSpec.describe Submission, type: :model do
     end
 
     it 'returns successful submissions' do
-      expect(Submission.success.count).to eq(1)
+      # We have 4 success submissions (1 from status-specific creation + 3 from project-specific creation)
+      expect(Submission.success.count).to eq(4)
     end
 
     it 'returns failed submissions' do
       expect(Submission.failed.count).to eq(1)
+    end
+    
+    it 'returns submissions by project' do
+      expect(Submission.by_project('Project1').count).to eq(2)
+      expect(Submission.by_project('Project2').count).to eq(1)
+      expect(Submission.by_project('NonExistentProject').count).to eq(0)
+    end
+    
+    it 'returns all submissions when project filter is nil or empty' do
+      total_count = Submission.count
+      expect(Submission.by_project(nil).count).to eq(total_count)
+      expect(Submission.by_project('').count).to eq(total_count)
     end
   end
 

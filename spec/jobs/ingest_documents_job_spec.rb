@@ -8,10 +8,15 @@ RSpec.describe IngestDocumentsJob, type: :job do
     let(:team_folder) { 'Team1' }
     let(:file_entries) do
       [
-        { name: 'document.pdf', path: "Metathon2025/#{team_folder}/document.pdf", mime_type: 'application/pdf', id: '123' },
-        { name: 'presentation.pptx', path: "Metathon2025/#{team_folder}/presentation.pptx", mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', id: '456' },
-        { name: 'image.jpg', path: "Metathon2025/#{team_folder}/image.jpg", mime_type: 'image/jpeg', id: '789' },
-        { name: 'archive.zip', path: "Metathon2025/#{team_folder}/archive.zip", mime_type: 'application/zip', id: '101' },
+        # Project1 files
+        { name: 'document.pdf', path: "Metathon2025/#{team_folder}/Project1/document.pdf", mime_type: 'application/pdf', id: '123' },
+        { name: 'presentation.pptx', path: "Metathon2025/#{team_folder}/Project1/presentation.pptx", mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', id: '456' },
+        
+        # Project2 files
+        { name: 'image.jpg', path: "Metathon2025/#{team_folder}/Project2/image.jpg", mime_type: 'image/jpeg', id: '789' },
+        { name: 'archive.zip', path: "Metathon2025/#{team_folder}/Project2/archive.zip", mime_type: 'application/zip', id: '101' },
+        
+        # Files without project folder (should default to "Default")
         { name: 'unsupported.txt', path: "Metathon2025/#{team_folder}/unsupported.txt", mime_type: 'text/plain', id: '112' }
       ]
     end
@@ -37,6 +42,24 @@ RSpec.describe IngestDocumentsJob, type: :job do
       expect {
         subject.perform
       }.to change(Submission, :count).by(4) # 4 supported file types
+    end
+    
+    it 'extracts project names from file paths correctly' do
+      subject.perform
+      
+      # Check Project1 files
+      pdf_submission = Submission.find_by(filename: 'document.pdf')
+      expect(pdf_submission.project).to eq('Project1')
+      
+      pptx_submission = Submission.find_by(filename: 'presentation.pptx')
+      expect(pptx_submission.project).to eq('Project1')
+      
+      # Check Project2 files
+      jpg_submission = Submission.find_by(filename: 'image.jpg')
+      expect(jpg_submission.project).to eq('Project2')
+      
+      zip_submission = Submission.find_by(filename: 'archive.zip')
+      expect(zip_submission.project).to eq('Project2')
     end
 
     it 'enqueues processing jobs for each file type' do
