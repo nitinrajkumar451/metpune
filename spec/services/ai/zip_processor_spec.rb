@@ -5,12 +5,11 @@ RSpec.describe Ai::ZipProcessor do
   let(:submission) { create(:submission, :zip) }
   let(:google_drive_service) { instance_double(GoogleDriveService) }
   let(:zip_content) { 'binary zip content' }
+  let(:mock_client) { instance_double(Ai::Client) }
 
   before do
+    allow(Ai::Client).to receive(:new).and_return(mock_client)
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(zip_content)
-
-    # Mock HTTParty to avoid actual network requests
-    allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
   end
 
   describe '#process' do
@@ -28,8 +27,6 @@ RSpec.describe Ai::ZipProcessor do
       before do
         # Set Rails environment to production for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
-
-        # Ensure the error is raised correctly in production
         allow(Zip::File).to receive(:open_buffer).and_raise(StandardError.new('API error'))
       end
 

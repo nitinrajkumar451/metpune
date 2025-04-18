@@ -5,12 +5,12 @@ RSpec.describe Ai::PdfExtractor do
   let(:submission) { create(:submission, :pdf) }
   let(:google_drive_service) { instance_double(GoogleDriveService) }
   let(:pdf_content) { 'Sample PDF content for testing' }
+  let(:mock_client) { instance_double(Ai::Client) }
 
   before do
+    allow(Ai::Client).to receive(:new).and_return(mock_client)
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(pdf_content)
-
-    # Mock the HTTParty call to avoid actual network requests
-    allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
+    allow(mock_client).to receive(:extract_text_from_document).and_return("Sample PDF content extracted from the document")
   end
 
   describe '#process' do
@@ -30,11 +30,12 @@ RSpec.describe Ai::PdfExtractor do
 
       before do
         allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(docx_content)
+        allow(mock_client).to receive(:extract_text_from_document).and_return("Sample DOCX content extracted")
       end
 
       it 'extracts text from the DOCX file' do
         result = extractor.process(submission, google_drive_service)
-        expect(result).to include('Sample DOCX content')
+        expect(result).to include('DOCX content')
       end
     end
 
@@ -42,7 +43,7 @@ RSpec.describe Ai::PdfExtractor do
       before do
         # Set Rails environment to production for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
-        allow(HTTParty).to receive(:post).and_raise(StandardError.new('API error'))
+        allow(mock_client).to receive(:extract_text_from_document).and_raise(StandardError.new('API error'))
       end
 
       it 'raises an error in production environment' do

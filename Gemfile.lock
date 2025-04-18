@@ -450,6 +450,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  base64
   bootsnap
   brakeman
   database_cleaner-active_record

@@ -5,12 +5,12 @@ RSpec.describe Ai::OcrExtractor do
   let(:submission) { create(:submission, :jpg) }
   let(:google_drive_service) { instance_double(GoogleDriveService) }
   let(:image_content) { 'binary image content' }
+  let(:mock_client) { instance_double(Ai::Client) }
 
   before do
+    allow(Ai::Client).to receive(:new).and_return(mock_client)
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(image_content)
-
-    # Mock HTTParty to avoid actual network requests (for non-error tests)
-    allow(HTTParty).to receive(:post).and_return(double('response', body: 'success'))
+    allow(mock_client).to receive(:extract_text_from_image).and_return("OCR text extracted from the image")
   end
 
   describe '#process' do
@@ -37,7 +37,7 @@ RSpec.describe Ai::OcrExtractor do
       before do
         # Set Rails environment to production for this test
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
-        allow(HTTParty).to receive(:post).and_raise(StandardError.new('API error'))
+        allow(mock_client).to receive(:extract_text_from_image).and_raise(StandardError.new('API error'))
       end
 
       it 'raises an error in production environment' do
