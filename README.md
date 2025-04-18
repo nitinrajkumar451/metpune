@@ -1,6 +1,6 @@
 # Metathon Backend
 
-A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. This backend handles document ingestion, AI transcription of various file formats, team summarization, and AI-powered evaluation.
+A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. This backend handles document ingestion, AI transcription of various file formats, team summarization, AI-powered evaluation, blog generation, and hackathon-wide trend analysis.
 
 ## Features
 
@@ -13,6 +13,7 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
 - AI-powered team evaluation with customizable judging criteria
 - Leaderboard generation with team rankings
 - Blog post generation from team summaries
+- Hackathon-wide trend analysis and insights generation
 
 ## Technology Stack
 
@@ -58,6 +59,15 @@ The application uses AI services for document processing, summarization, evaluat
 - **Markdown format**: Properly formatted with frontmatter and sections
 - **Storytelling**: Crafts a narrative around the team's journey and project
 - **Technical details**: Highlights key technical aspects and learning moments
+
+### Hackathon Insights
+
+- **Cross-team analysis**: Identifies common patterns across all team submissions
+- **Technology trends**: Tracks common tech stacks, frameworks, and tools used
+- **Problem domains**: Reveals recurring themes in problems tackled
+- **AI applications**: Shows how AI/ML is utilized across different projects
+- **Innovation tracking**: Highlights particularly novel or effective approaches
+- **Challenge patterns**: Identifies common obstacles teams encountered
 
 You can configure either Claude (Anthropic) or OpenAI's API for processing. The system will automatically:
 
@@ -152,12 +162,19 @@ If no API keys are set in production, the application will raise an error during
    # Start Redis (if not already running)
    redis-server
 
-   # Start Sidekiq
-   bundle exec sidekiq
+   # Start Sidekiq with configuration
+   bundle exec sidekiq -C config/sidekiq.yml
 
    # Start Rails server
    rails server
    ```
+
+   You can access the Sidekiq admin interface at:
+   ```
+   http://localhost:3000/sidekiq
+   ```
+
+   In production, the Sidekiq UI is secured with authentication (configure SIDEKIQ_USERNAME and SIDEKIQ_PASSWORD environment variables).
 
 ## Running Tests
 
@@ -599,6 +616,89 @@ Generates a new team blog from a team summary.
   "message": "Team blog generation started for: Team1"
 }
 ```
+
+### Hackathon Insights
+
+#### GET /api/hackathon_insights
+Returns the latest hackathon trends analysis.
+
+**Response:**
+```json
+{
+  "hackathon_insight": {
+    "id": 1,
+    "content": "# Hackathon Trends Analysis\n\n## Executive Summary\n...",
+    "status": "success",
+    "created_at": "2025-04-18T15:30:00.000Z",
+    "updated_at": "2025-04-18T15:35:00.000Z"
+  }
+}
+```
+
+#### GET /api/hackathon_insights/markdown
+Returns the raw markdown content of the hackathon trends analysis for direct rendering.
+
+**Response:**
+```markdown
+# Hackathon Trends Analysis
+
+## Executive Summary
+
+This analysis examines the patterns and trends across all teams participating in the hackathon...
+```
+
+#### POST /api/hackathon_insights/generate
+Generates a new hackathon trends analysis based on all team summaries.
+
+**Response:**
+```json
+{
+  "message": "Hackathon insights generation started"
+}
+```
+
+## Deployment
+
+### Production Setup
+
+1. Configure all required environment variables:
+   - Database credentials (DATABASE_URL)
+   - Redis connection (REDIS_URL)
+   - AI API keys (CLAUDE_API_KEY or OPENAI_API_KEY)
+   - Google Drive credentials
+   - Rails secret key base
+   - Sidekiq admin credentials
+
+2. Use the provided Procfile with your platform of choice:
+   ```bash
+   # Start web server and worker processes
+   foreman start
+   ```
+
+3. For containerized deployment, use the provided Dockerfile:
+   ```bash
+   # Build the container
+   docker build -t metathon-backend .
+   
+   # Run with environment variables
+   docker run -p 3000:3000 --env-file .env metathon-backend
+   ```
+
+### Background Jobs
+
+The application uses Sidekiq for processing all background jobs:
+
+1. Document ingestion and processing
+2. Team summary generation
+3. Team evaluation
+4. Blog generation
+5. Hackathon insights analysis
+
+For high-traffic or production environments:
+
+1. Adjust concurrency in `config/sidekiq.yml` based on your server capabilities
+2. Consider using multiple Sidekiq processes with different queue priorities
+3. Monitor the Sidekiq dashboard for job performance and failure rates
 
 ## License
 

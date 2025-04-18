@@ -1,4 +1,20 @@
+require "sidekiq/web"
+
 Rails.application.routes.draw do
+  # Mount Sidekiq web interface with basic auth in production
+  if Rails.env.production?
+    Sidekiq::Web.use Rack::Auth::Basic do |username, password|
+      # Enable in your deployment with proper credentials
+      # ActiveSupport::SecurityUtils.secure_compare(::Digest::SHA256.hexdigest(username), ::Digest::SHA256.hexdigest(ENV['SIDEKIQ_USERNAME'])) &
+      # ActiveSupport::SecurityUtils.secure_compare(::Digest::SHA256.hexdigest(password), ::Digest::SHA256.hexdigest(ENV['SIDEKIQ_PASSWORD']))
+
+      # For now, disable in production until configured
+      false
+    end
+  end
+
+  # Mount the Sidekiq web UI at /sidekiq
+  mount Sidekiq::Web => "/sidekiq"
   # Try to load Rswag if available
   begin
     mount Rswag::Ui::Engine => "/api-docs"
