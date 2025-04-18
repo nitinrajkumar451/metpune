@@ -3,27 +3,27 @@ class Submission < ApplicationRecord
   validates :team_name, :filename, :file_type, :source_url, :status, presence: true
   validates :file_type, inclusion: { in: %w[pdf pptx docx jpg png zip] }
   validates :status, inclusion: { in: %w[pending processing success failed] }
-  
+
   # Scopes
-  scope :pending, -> { where(status: 'pending') }
-  scope :processing, -> { where(status: 'processing') }
-  scope :success, -> { where(status: 'success') }
-  scope :failed, -> { where(status: 'failed') }
-  
+  scope :pending, -> { where(status: "pending") }
+  scope :processing, -> { where(status: "processing") }
+  scope :success, -> { where(status: "success") }
+  scope :failed, -> { where(status: "failed") }
+
   # File type methods
   def document?
     %w[pdf docx].include?(file_type)
   end
-  
+
   def presentation?
-    file_type == 'pptx'
+    file_type == "pptx"
   end
-  
+
   def image?
     %w[jpg png].include?(file_type)
   end
-  
+
   def archive?
-    file_type == 'zip'
+    file_type == "zip"
   end
 end

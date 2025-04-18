@@ -10,7 +10,7 @@ class CreateSubmissions < ActiveRecord::Migration[8.0]
 
       t.timestamps
     end
-    
+
     add_index :submissions, :team_name
     add_index :submissions, :file_type
     add_index :submissions, :status
