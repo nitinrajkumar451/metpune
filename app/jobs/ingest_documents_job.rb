@@ -51,10 +51,20 @@ class IngestDocumentsJob < ApplicationJob
 
     begin
       Rails.logger.info("Processing submission #{submission.id} (#{submission.file_type})")
-      raw_text = processor.process(submission, google_drive_service)
+      result = processor.process(submission, google_drive_service)
 
-      if raw_text.present?
-        submission.update!(raw_text: raw_text, status: "success")
+      if result.present?
+        # The processor now returns a hash with :text and :summary keys
+        raw_text = result.is_a?(Hash) ? result[:text] : result
+        summary = result.is_a?(Hash) ? result[:summary] : nil
+
+        # Update with both raw text and summary
+        submission.update!(
+          raw_text: raw_text,
+          summary: summary,
+          status: "success"
+        )
+
         Rails.logger.info("Successfully processed submission #{submission.id}")
       else
         Rails.logger.error("No content extracted from submission #{submission.id}")

@@ -13,8 +13,14 @@ RSpec.describe 'Submissions API', type: :request do
                 description: 'Filter submissions by project'
 
       response '200', 'submissions found' do
-        schema type: :array,
-               items: { '$ref' => '#/components/schemas/Submission' }
+        schema type: :object,
+               properties: {
+                 submissions: {
+                   type: :array,
+                   items: { '$ref' => '#/components/schemas/Submission' }
+                 }
+               },
+               required: [ 'submissions' ]
 
         let(:status) { 'success' }
         run_test!
@@ -30,7 +36,11 @@ RSpec.describe 'Submissions API', type: :request do
                 description: 'Submission ID'
 
       response '200', 'submission found' do
-        schema '$ref' => '#/components/schemas/Submission'
+        schema type: :object,
+               properties: {
+                 submission: { '$ref' => '#/components/schemas/Submission' }
+               },
+               required: [ 'submission' ]
 
         let(:id) { create(:submission).id }
         run_test!
@@ -44,6 +54,36 @@ RSpec.describe 'Submissions API', type: :request do
                required: [ 'error' ]
 
         let(:id) { 'invalid' }
+        run_test!
+      end
+    end
+  end
+
+  path '/api/summaries' do
+    get 'Gets summaries grouped by team and project' do
+      tags 'Submissions'
+      produces 'application/json'
+
+      response '200', 'summaries found' do
+        schema type: :object,
+               additionalProperties: {
+                 type: :object,
+                 additionalProperties: {
+                   type: :array,
+                   items: {
+                     type: :object,
+                     properties: {
+                       id: { type: :integer },
+                       filename: { type: :string },
+                       file_type: { type: :string, enum: [ 'pdf', 'pptx', 'docx', 'jpg', 'png', 'zip' ] },
+                       summary: { type: :string, nullable: true },
+                       created_at: { type: :string, format: 'date-time' }
+                     },
+                     required: [ 'id', 'filename', 'file_type' ]
+                   }
+                 }
+               }
+
         run_test!
       end
     end

@@ -7,11 +7,17 @@ module Ai
     def process(submission, google_drive_service)
       file_content = google_drive_service.download_file(submission.source_url)
 
-      # Use the AI client to summarize the presentation
-      response = @client.summarize_presentation(file_content)
+      # Use the AI client to extract slide-by-slide summaries
+      slide_summaries = @client.summarize_presentation(file_content)
 
-      # Return the summaries
-      response
+      # Generate an executive summary of the entire presentation
+      executive_summary = @client.summarize_content(file_content, submission.file_type, slide_summaries)
+
+      # Return both the slide-by-slide summaries and the executive summary
+      {
+        text: slide_summaries,
+        summary: executive_summary
+      }
     end
   end
 end

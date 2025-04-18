@@ -11,6 +11,7 @@ RSpec.describe Ai::PptxSummarizer do
     allow(Ai::Client).to receive(:new).and_return(mock_client)
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(pptx_content)
     allow(mock_client).to receive(:summarize_presentation).and_return("Slide summaries from the presentation")
+    allow(mock_client).to receive(:summarize_content).and_return("Executive summary of presentation: key concepts and takeaways")
   end
 
   describe '#process' do
@@ -19,9 +20,11 @@ RSpec.describe Ai::PptxSummarizer do
       summarizer.process(submission, google_drive_service)
     end
 
-    it 'generates summaries for each slide' do
+    it 'generates slide-by-slide summaries and an executive summary' do
       result = summarizer.process(submission, google_drive_service)
-      expect(result).to include('Slide summaries')
+      expect(result).to be_a(Hash)
+      expect(result[:text]).to include('Slide summaries')
+      expect(result[:summary]).to include('Executive summary of presentation')
     end
 
     context 'when summarization fails in production' do

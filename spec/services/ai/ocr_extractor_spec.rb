@@ -11,6 +11,7 @@ RSpec.describe Ai::OcrExtractor do
     allow(Ai::Client).to receive(:new).and_return(mock_client)
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(image_content)
     allow(mock_client).to receive(:extract_text_from_image).and_return("OCR text extracted from the image")
+    allow(mock_client).to receive(:summarize_content).and_return("Summary of image content: key visual elements and text")
   end
 
   describe '#process' do
@@ -19,17 +20,21 @@ RSpec.describe Ai::OcrExtractor do
       extractor.process(submission, google_drive_service)
     end
 
-    it 'extracts text from the image using OCR' do
+    it 'extracts text and summary from the image using OCR' do
       result = extractor.process(submission, google_drive_service)
-      expect(result).to include('OCR text')
+      expect(result).to be_a(Hash)
+      expect(result[:text]).to include('OCR text')
+      expect(result[:summary]).to include('Summary of image content')
     end
 
     context 'with PNG files' do
       let(:submission) { create(:submission, :png) }
 
-      it 'extracts text from the PNG file' do
+      it 'extracts text and summary from the PNG file' do
         result = extractor.process(submission, google_drive_service)
-        expect(result).to include('OCR text')
+        expect(result).to be_a(Hash)
+        expect(result[:text]).to include('OCR text')
+        expect(result[:summary]).to include('Summary of image content')
       end
     end
 

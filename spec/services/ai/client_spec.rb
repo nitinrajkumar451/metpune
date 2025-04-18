@@ -30,6 +30,83 @@ RSpec.describe Ai::Client do
     end
   end
 
+  describe '#summarize_content' do
+    context 'with different file types' do
+      it 'returns appropriate mock response for PDF' do
+        result = client.summarize_content(test_content, 'pdf')
+        expect(result).to include('Summary of PDF document')
+        expect(result).to include('research study on artificial intelligence')
+      end
+
+      it 'returns appropriate mock response for DOCX' do
+        result = client.summarize_content(test_content, 'docx')
+        expect(result).to include('Summary of Word document')
+        expect(result).to include('strategic plan for Q3-Q4 2024')
+      end
+
+      it 'returns appropriate mock response for PPTX' do
+        result = client.summarize_content(test_content, 'pptx')
+        expect(result).to include('Executive summary of presentation')
+        expect(result).to include('Metathon 2025 AI initiative')
+      end
+
+      it 'returns appropriate mock response for images' do
+        result = client.summarize_content(test_content, 'jpg')
+        expect(result).to include('Summary of image content')
+        expect(result).to include('data visualization dashboard')
+      end
+
+      it 'returns appropriate mock response for ZIP archives' do
+        result = client.summarize_content(test_content, 'zip')
+        expect(result).to include('Summary of archive contents')
+        expect(result).to include('collection of project documents')
+      end
+    end
+
+    context 'with pre-extracted text' do
+      let(:extracted_text) { 'Pre-extracted text content from document' }
+
+      it 'uses the provided text instead of raw content' do
+        # In test environment, it will still return mock responses
+        # But in production, it would use the provided text
+        result = client.summarize_content(test_content, 'pdf', extracted_text)
+        expect(result).to include('Summary of PDF document')
+      end
+    end
+  end
+
+  describe '#create_summary_prompt' do
+    it 'creates appropriate prompt for PDF files' do
+      prompt = client.send(:create_summary_prompt, 'pdf')
+      expect(prompt).to include('concise summary of this PDF document')
+    end
+
+    it 'creates appropriate prompt for DOCX files' do
+      prompt = client.send(:create_summary_prompt, 'docx')
+      expect(prompt).to include('concise summary of this Word document')
+    end
+
+    it 'creates appropriate prompt for PPTX files' do
+      prompt = client.send(:create_summary_prompt, 'pptx')
+      expect(prompt).to include('executive summary of this presentation')
+    end
+
+    it 'creates appropriate prompt for image files' do
+      prompt = client.send(:create_summary_prompt, 'jpg')
+      expect(prompt).to include('description and summary of what\'s shown in this image')
+    end
+
+    it 'creates appropriate prompt for ZIP archives' do
+      prompt = client.send(:create_summary_prompt, 'zip')
+      expect(prompt).to include('summary of the collection of files')
+    end
+
+    it 'creates a generic prompt for unsupported file types' do
+      prompt = client.send(:create_summary_prompt, 'unknown')
+      expect(prompt).to include('concise summary of this content')
+    end
+  end
+
   describe '#default_provider' do
     context 'in test environment' do
       it 'returns :mock provider' do

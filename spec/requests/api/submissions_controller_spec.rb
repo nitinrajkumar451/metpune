@@ -22,8 +22,8 @@ RSpec.describe "Api::Submissions", type: :request do
       get "/api/submissions"
 
       expect(response).to have_http_status(:ok)
-      submissions = JSON.parse(response.body)
-      expect(submissions.size).to eq(4)
+      json_response = JSON.parse(response.body)
+      expect(json_response["submissions"].size).to eq(4)
     end
 
     context "when filtering by status" do
@@ -31,7 +31,8 @@ RSpec.describe "Api::Submissions", type: :request do
         get "/api/submissions", params: { status: "success" }
 
         expect(response).to have_http_status(:ok)
-        submissions = JSON.parse(response.body)
+        json_response = JSON.parse(response.body)
+        submissions = json_response["submissions"]
         expect(submissions.size).to eq(3)
         expect(submissions.map { |s| s["status"] }).to all(eq("success"))
       end
@@ -44,7 +45,8 @@ RSpec.describe "Api::Submissions", type: :request do
         get "/api/submissions", params: { team_name: "SpecificTeam" }
 
         expect(response).to have_http_status(:ok)
-        submissions = JSON.parse(response.body)
+        json_response = JSON.parse(response.body)
+        submissions = json_response["submissions"]
         expect(submissions.size).to eq(1)
         expect(submissions.first["team_name"]).to eq("SpecificTeam")
       end
@@ -66,7 +68,8 @@ RSpec.describe "Api::Submissions", type: :request do
         get "/api/submissions", params: { project: "Project1" }
 
         expect(response).to have_http_status(:ok)
-        submissions = JSON.parse(response.body)
+        json_response = JSON.parse(response.body)
+        submissions = json_response["submissions"]
         expect(submissions.size).to eq(2)
         expect(submissions.map { |s| s["project"] }).to all(eq("Project1"))
       end
@@ -75,7 +78,8 @@ RSpec.describe "Api::Submissions", type: :request do
         get "/api/submissions", params: { project: "NonExistingProject" }
 
         expect(response).to have_http_status(:ok)
-        submissions = JSON.parse(response.body)
+        json_response = JSON.parse(response.body)
+        submissions = json_response["submissions"]
         expect(submissions).to be_empty
       end
     end
@@ -89,9 +93,9 @@ RSpec.describe "Api::Submissions", type: :request do
 
       expect(response).to have_http_status(:ok)
       json_response = JSON.parse(response.body)
-      expect(json_response["id"]).to eq(submission.id)
-      expect(json_response["team_name"]).to eq(submission.team_name)
-      expect(json_response["filename"]).to eq(submission.filename)
+      expect(json_response["submission"]["id"]).to eq(submission.id)
+      expect(json_response["submission"]["team_name"]).to eq(submission.team_name)
+      expect(json_response["submission"]["filename"]).to eq(submission.filename)
     end
 
     context "when the submission does not exist" do

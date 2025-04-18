@@ -11,6 +11,7 @@ RSpec.describe Ai::PdfExtractor do
     allow(Ai::Client).to receive(:new).and_return(mock_client)
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(pdf_content)
     allow(mock_client).to receive(:extract_text_from_document).and_return("Sample PDF content extracted from the document")
+    allow(mock_client).to receive(:summarize_content).and_return("Summary of PDF document: key points and findings")
   end
 
   describe '#process' do
@@ -19,9 +20,11 @@ RSpec.describe Ai::PdfExtractor do
       extractor.process(submission, google_drive_service)
     end
 
-    it 'extracts text from the PDF' do
+    it 'extracts text and summary from the PDF' do
       result = extractor.process(submission, google_drive_service)
-      expect(result).to include('Sample PDF content')
+      expect(result).to be_a(Hash)
+      expect(result[:text]).to include('Sample PDF content')
+      expect(result[:summary]).to include('Summary of PDF document')
     end
 
     context 'with docx files' do
@@ -31,11 +34,14 @@ RSpec.describe Ai::PdfExtractor do
       before do
         allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(docx_content)
         allow(mock_client).to receive(:extract_text_from_document).and_return("Sample DOCX content extracted")
+        allow(mock_client).to receive(:summarize_content).and_return("Summary of DOCX document: key points and findings")
       end
 
-      it 'extracts text from the DOCX file' do
+      it 'extracts text and summary from the DOCX file' do
         result = extractor.process(submission, google_drive_service)
-        expect(result).to include('DOCX content')
+        expect(result).to be_a(Hash)
+        expect(result[:text]).to include('DOCX content')
+        expect(result[:summary]).to include('Summary of DOCX document')
       end
     end
 
@@ -50,6 +56,14 @@ RSpec.describe Ai::PdfExtractor do
         expect {
           extractor.process(submission, google_drive_service)
         }.to raise_error(StandardError, /API error/)
+      end
+    end
+
+    context 'when summarization is called' do
+      it 'passes extracted text to the summarization method' do
+        extracted_text = "Sample PDF content extracted from the document"
+        expect(mock_client).to receive(:summarize_content).with(pdf_content, submission.file_type, extracted_text)
+        extractor.process(submission, google_drive_service)
       end
     end
   end

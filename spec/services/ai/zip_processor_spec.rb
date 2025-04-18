@@ -10,6 +10,7 @@ RSpec.describe Ai::ZipProcessor do
   before do
     allow(Ai::Client).to receive(:new).and_return(mock_client)
     allow(google_drive_service).to receive(:download_file).with(submission.source_url).and_return(zip_content)
+    allow(mock_client).to receive(:summarize_content).and_return("Summary of archive contents: key documents and information")
   end
 
   describe '#process' do
@@ -18,9 +19,11 @@ RSpec.describe Ai::ZipProcessor do
       processor.process(submission, google_drive_service)
     end
 
-    it 'extracts and processes files from the ZIP archive' do
+    it 'extracts, processes, and summarizes files from the ZIP archive' do
       result = processor.process(submission, google_drive_service)
-      expect(result).to include('Extracted ZIP contents')
+      expect(result).to be_a(Hash)
+      expect(result[:text]).to include('Extracted ZIP contents')
+      expect(result[:summary]).to include('Summary of archive contents')
     end
 
     context 'when ZIP processing fails in production' do

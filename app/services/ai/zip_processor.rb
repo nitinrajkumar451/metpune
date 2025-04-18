@@ -1,3 +1,4 @@
+
 require "zip"
 require "stringio"
 
@@ -11,10 +12,16 @@ module Ai
       file_content = google_drive_service.download_file(submission.source_url)
 
       # Process the ZIP archive and extract content from each file
-      response = process_zip_archive(file_content)
+      extracted_text = process_zip_archive(file_content)
 
-      # Return the processed content
-      response
+      # Generate a summary of the archive contents
+      summary = @client.summarize_content(file_content, submission.file_type, extracted_text)
+
+      # Return both the extracted text and summary
+      {
+        text: extracted_text,
+        summary: summary
+      }
     end
 
     private
