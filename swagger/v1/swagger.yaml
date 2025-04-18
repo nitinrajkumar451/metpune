@@ -41,9 +41,14 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/Submission"
+                type: object
+                properties:
+                  submissions:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Submission"
+                required:
+                - submissions
   "/api/submissions/{id}":
     get:
       summary: Retrieves a submission
@@ -62,7 +67,12 @@ paths:
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/Submission"
+                type: object
+                properties:
+                  submission:
+                    "$ref": "#/components/schemas/Submission"
+                required:
+                - submission
         '404':
           description: submission not found
           content:
@@ -74,6 +84,48 @@ paths:
                     type: string
                 required:
                 - error
+  "/api/summaries":
+    get:
+      summary: Gets summaries grouped by team and project
+      tags:
+      - Submissions
+      responses:
+        '200':
+          description: summaries found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        filename:
+                          type: string
+                        file_type:
+                          type: string
+                          enum:
+                          - pdf
+                          - pptx
+                          - docx
+                          - jpg
+                          - png
+                          - zip
+                        summary:
+                          type: string
+                          nullable: true
+                        created_at:
+                          type: string
+                          format: date-time
+                      required:
+                      - id
+                      - filename
+                      - file_type
   "/api/start_ingestion":
     post:
       summary: Starts the document ingestion process
@@ -119,6 +171,9 @@ components:
         source_url:
           type: string
         raw_text:
+          type: string
+          nullable: true
+        summary:
           type: string
           nullable: true
         status:

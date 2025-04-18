@@ -60,6 +60,7 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     resources :submissions, only: [ :index, :show ]
+    get "/summaries", to: "submissions#summaries"
     post "/start_ingestion", to: "submissions#start_ingestion"
   end
 end

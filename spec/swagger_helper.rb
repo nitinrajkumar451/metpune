@@ -44,6 +44,7 @@ RSpec.configure do |config|
               file_type: { type: 'string', enum: [ 'pdf', 'pptx', 'docx', 'jpg', 'png', 'zip' ] },
               source_url: { type: 'string' },
               raw_text: { type: 'string', nullable: true },
+              summary: { type: 'string', nullable: true },
               status: { type: 'string', enum: [ 'pending', 'processing', 'success', 'failed' ] },
               project: { type: 'string', nullable: true },
               created_at: { type: 'string', format: 'date-time' },

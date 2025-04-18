@@ -46,6 +46,23 @@ module Ai
       end
     end
 
+    def summarize_content(content, file_type, text = nil)
+      # Skip API calls in development/test
+      return mock_summary_response(file_type) unless Rails.env.production?
+
+      # If we already have extracted text, use that instead of the raw content
+      content_to_use = text.present? ? text : content
+
+      case @provider
+      when :claude
+        call_claude_api(content_to_use, create_summary_prompt(file_type))
+      when :openai
+        call_openai_api(content_to_use, create_summary_prompt(file_type))
+      else
+        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+      end
+    end
+
     private
 
     def default_provider
@@ -192,6 +209,23 @@ module Ai
       "Please provide a slide-by-slide summary of this presentation. For each slide, include the main points, key information, and any important data."
     end
 
+    def create_summary_prompt(file_type)
+      case file_type
+      when "pdf"
+        "Please provide a concise summary of this PDF document, highlighting the key points, main arguments, and any important conclusions."
+      when "docx"
+        "Please provide a concise summary of this Word document, highlighting the key points, main arguments, and any important conclusions."
+      when "pptx"
+        "Please provide a concise executive summary of this presentation, highlighting the key messages and takeaways."
+      when "jpg", "png"
+        "Please provide a concise description and summary of what's shown in this image, including any relevant text or visual information."
+      when "zip"
+        "Please provide a concise summary of the collection of files extracted from this archive, highlighting the key information from each."
+      else
+        "Please provide a concise summary of this content, highlighting the key points and main takeaways."
+      end
+    end
+
     # Mock responses for testing
     def mock_document_response(file_type)
       if file_type == "pdf"
@@ -214,6 +248,45 @@ module Ai
       "Slide 3: Technical implementation details\n" +
       "Slide 4: Results and metrics\n" +
       "Slide 5: Future enhancements and roadmap"
+    end
+
+    def mock_summary_response(file_type)
+      case file_type
+      when "pdf"
+        "Summary of PDF document:\n\n" +
+        "This document presents a research study on artificial intelligence applications in healthcare. " +
+        "Key points include: (1) AI can improve diagnostic accuracy by 35%, (2) Implementation challenges " +
+        "remain around data privacy and integration with existing systems, (3) The study recommends a " +
+        "phased approach to AI adoption with proper training and governance frameworks."
+      when "docx"
+        "Summary of Word document:\n\n" +
+        "This document outlines the strategic plan for Q3-Q4 2024. " +
+        "The main objectives are: (1) Expand market reach in Asia-Pacific region, (2) Launch three new " +
+        "product features based on customer feedback, (3) Improve customer retention by 15% through " +
+        "enhanced support services. The document details resource allocation and success metrics for each initiative."
+      when "pptx"
+        "Executive summary of presentation:\n\n" +
+        "This presentation provides an overview of the Metathon 2025 AI initiative. " +
+        "The key takeaways are: (1) The AI document processing system shows 42% efficiency improvement " +
+        "over manual methods, (2) Team collaboration features received positive feedback from 89% of users, " +
+        "(3) Next steps include enhanced summarization capabilities and multi-language support."
+      when "jpg", "png"
+        "Summary of image content:\n\n" +
+        "The image shows a data visualization dashboard with quarterly performance metrics. " +
+        "Key information includes: (1) Revenue increased 23% year-over-year, (2) Customer acquisition cost " +
+        "decreased by 12%, (3) Mobile usage surpassed desktop for the first time at 58% of total traffic. " +
+        "The graph trends indicate consistent growth across all business segments."
+      when "zip"
+        "Summary of archive contents:\n\n" +
+        "This archive contains a collection of project documents including: (1) Technical specifications " +
+        "detailing API requirements and data models, (2) User research findings highlighting key pain points " +
+        "and suggested improvements, (3) Design mockups for the new interface with a focus on accessibility, " +
+        "(4) Implementation timeline with milestones and resource allocations."
+      else
+        "Content summary:\n\n" +
+        "This content provides information about [generic topic]. Key points include important facts, " +
+        "relevant data, and actionable insights that would be useful for understanding the subject matter."
+      end
     end
   end
 end
