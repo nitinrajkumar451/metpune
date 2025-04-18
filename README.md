@@ -50,14 +50,42 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
    ```
 
 5. Configure Google Drive API:
-   - Create a Google Cloud project
-   - Enable the Google Drive API
-   - Create credentials (OAuth 2.0 client ID or service account)
-   - Set the environment variables:
-     ```
-     GOOGLE_DRIVE_CLIENT_ID=your_client_id
-     GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
-     ```
+   - Create a Google Cloud project in the [Google Cloud Console](https://console.cloud.google.com/)
+   - Enable the Google Drive API for your project
+   - Create a Service Account:
+     - Go to "IAM & Admin" > "Service Accounts"
+     - Click "Create Service Account"
+     - Give it a name and description
+     - Grant it the "Drive API > Drive API Read Only" role
+     - Create and download JSON key
+   - Set up credentials in one of these ways:
+     - **Environment variables (recommended)**: Copy `.env.example` to `.env` and set:
+       ```
+       GOOGLE_DRIVE_CREDENTIALS_PATH=/path/to/your/downloaded/credentials.json
+       ```
+     - **Direct JSON content**: If you can't store the file, set the entire JSON in an environment variable:
+       ```
+       GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...","private_key_id":"...","private_key":"...","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"..."}
+       ```
+     - **Rails credentials**: Encrypt the credentials using:
+       ```
+       rails credentials:edit
+       ```
+       And add the following structure:
+       ```yaml
+       google_drive:
+         service_account: true
+         project_id: your-project-id
+         private_key_id: abc123...
+         private_key: |
+           -----BEGIN PRIVATE KEY-----
+           ...
+           -----END PRIVATE KEY-----
+         client_email: service@project.iam.gserviceaccount.com
+         client_id: 123456...
+         client_x509_cert_url: https://www.googleapis.com/robot/v1/metadata/x509/service%40project.iam.gserviceaccount.com
+       ```
+   - Share the "Metathon2025" folder with the service account email (client_email field from the JSON)
 
 6. Start the servers:
    ```bash
@@ -143,12 +171,4 @@ Returns a specific submission.
 
 ## License
 
-MIT# metpune
-# metpune
-# metpune
-# metpune
-# metpune
-# metpune
-# metpune
-# metpune
-# metpune
+MIT
