@@ -324,6 +324,238 @@ namespace :test_data do
     end
   end
   
+  desc "Generate team evaluation"
+  task :generate_team_evaluation, [:team_name] => :environment do |t, args|
+    team_name = args[:team_name]
+    
+    if team_name.blank?
+      puts "Error: Team name is required."
+      puts "Usage: rake test_data:generate_team_evaluation[TeamName]"
+      exit 1
+    end
+    
+    # Check if team summary exists
+    team_summary = TeamSummary.find_by(team_name: team_name)
+    
+    if team_summary.nil?
+      puts "Error: No summary found for team '#{team_name}'. Generate a team summary first."
+      exit 1
+    end
+    
+    # Get the judging criteria
+    criteria = JudgingCriterion.all.map do |criterion|
+      {
+        name: criterion.name,
+        weight: criterion.weight,
+        description: criterion.description
+      }
+    end
+    
+    if criteria.empty?
+      puts "Error: No judging criteria found."
+      exit 1
+    end
+    
+    puts "Generating evaluation for team #{team_name}..."
+    
+    # Create an AI client and generate the evaluation
+    begin
+      ai_client = Ai::Client.new
+      
+      # For testing environment, let's use custom scores based on team name
+      # This ensures each team gets unique but realistic scores
+      scores = {}
+      total_weighted_score = 0
+      total_weight = 0
+      
+      # Generate varied scores based on team name
+      criteria.each do |criterion|
+        name = criterion[:name]
+        weight = criterion[:weight].to_f
+        
+        # Generate a base score with some randomness depending on team name
+        seed = team_name.sum / 100.0  # Use team name characters as seed
+        base_score = case team_name
+                     when "TeamAlpha" then 4.6
+                     when "TeamBeta" then 4.3
+                     when "TeamGamma" then 4.5
+                     when "TeamDelta" then 4.1
+                     when "TeamOmega" then 4.7
+                     else 4.0
+                     end
+        
+        # Add some per-criterion variation
+        variation = case name
+                    when "Innovation" 
+                      team_name.include?("Alpha") || team_name.include?("Gamma") ? 0.2 : -0.1
+                    when "Technical Execution"
+                      team_name.include?("Beta") || team_name.include?("Delta") ? 0.3 : 0.1
+                    when "Impact"
+                      team_name.include?("Omega") || team_name.include?("Alpha") ? 0.1 : -0.2
+                    when "Presentation Quality"
+                      team_name.include?("Gamma") ? 0.4 : 0.0
+                    when "Completeness"
+                      team_name.include?("Beta") || team_name.include?("Omega") ? 0.2 : -0.1
+                    else 0.0
+                    end
+        
+        # Calculate final score (between 3.5 and 5.0, rounded to 1 decimal)
+        score = [(base_score + variation).round(1), 5.0].min
+        score = [score, 3.5].max
+        
+        # Generate feedback based on score
+        feedback = if score >= 4.5
+                     "Exceptional performance in this area. The team demonstrated outstanding #{name.downcase} with remarkable attention to detail and execution."
+                   elsif score >= 4.0
+                     "Excellent work in this criterion. The team showed strong capabilities and delivered high-quality results."
+                   elsif score >= 3.5
+                     "Good performance with room for enhancement. The team met expectations but could further develop this aspect."
+                   else
+                     "Satisfactory work in this area. There is significant room for improvement in future iterations."
+                   end
+        
+        # Add specific details based on criterion
+        case name
+        when "Innovation"
+          if team_name == "TeamAlpha"
+            feedback += " The voice assistant for healthcare shows novel approaches to medical support systems."
+          elsif team_name == "TeamBeta"
+            feedback += " The urban mobility solution introduces creative approaches to transportation optimization."
+          elsif team_name == "TeamGamma"
+            feedback += " The decentralized energy platform demonstrates innovative use of blockchain technology."
+          elsif team_name == "TeamDelta"
+            feedback += " The financial inclusion platform shows thoughtful approaches to accessibility challenges."
+          elsif team_name == "TeamOmega"
+            feedback += " The adaptive learning system presents novel approaches to personalized education."
+          end
+        when "Technical Execution"
+          technologies = case team_name
+                         when "TeamAlpha" then "Python, TensorFlow, PyTorch, React Native"
+                         when "TeamBeta" then "IoT, React, Node.js, MongoDB"
+                         when "TeamGamma" then "Blockchain, IoT, Machine Learning"
+                         when "TeamDelta" then "Blockchain, React, Node.js, PostgreSQL"
+                         when "TeamOmega" then "Node.js, Python, React Native, MongoDB"
+                         else "modern web technologies"
+                         end
+          feedback += " The technical implementation using #{technologies} shows #{score >= 4.3 ? 'excellent' : 'good'} engineering practices."
+        end
+        
+        scores[name] = {
+          "score" => score,
+          "weight" => weight,
+          "feedback" => feedback
+        }
+        
+        total_weighted_score += score * weight
+        total_weight += weight
+      end
+      
+      average_score = (total_weighted_score / total_weight).round(2)
+      
+      # Overall comments
+      comments = case team_name
+                 when "TeamAlpha"
+                   "Team Alpha's healthcare voice assistant demonstrates exceptional innovation and technical implementation. The solution addresses critical needs in patient care with a well-designed voice interface and robust backend services. Future iterations could focus on expanding language support and healthcare provider integrations."
+                 when "TeamBeta"
+                   "Team Beta's urban mobility platform shows excellent technical execution and real-world impact potential. The integration of IoT devices with transit data creates a compelling solution for smart city applications. Additional user testing in diverse urban environments would strengthen the solution further."
+                 when "TeamGamma"
+                   "Team Gamma's decentralized energy platform demonstrates innovative use of blockchain technology with strong technical implementation. The peer-to-peer trading system addresses key challenges in renewable energy distribution. Further development of user onboarding processes would enhance adoption potential."
+                 when "TeamDelta"
+                   "Team Delta's financial inclusion platform shows strong technical execution with meaningful societal impact. The combination of secure transactions and educational modules creates a comprehensive solution. Enhancing the mobile experience and adding offline capabilities could further increase accessibility."
+                 when "TeamOmega"
+                   "Team Omega's adaptive learning system demonstrates exceptional technical sophistication and innovative approaches to personalized education. The cognitive profiling and knowledge mapping show deep domain understanding. Expanding content areas and adding instructor dashboards would create additional value."
+                 else
+                   "The team delivered a solid project with good technical execution and innovation. There are opportunities to enhance user experience and expand feature coverage in future iterations."
+                 end
+      
+      # Format as JSON
+      evaluation_json = {
+        "scores" => scores,
+        "total_score" => average_score,
+        "comments" => comments
+      }.to_json
+      
+      # Save the evaluation
+      TeamEvaluation.find_or_create_by(team_name: team_name).update(
+        scores: scores,
+        total_score: average_score,
+        comments: comments,
+        status: 'success'
+      )
+      
+      puts "\n===== EVALUATION FOR #{team_name.upcase} ====="
+      puts "Total Score: #{average_score}/5.0"
+      puts "\nScores by Criterion:"
+      scores.each do |name, data|
+        puts "- #{name}: #{data["score"]}/5.0 (Weight: #{data["weight"]})"
+      end
+      puts "\nComments:\n#{comments}"
+      puts "\n===== END OF EVALUATION ====="
+      
+      puts "\nEvaluation saved to the database"
+    rescue => e
+      puts "Error generating team evaluation: #{e.message}"
+      puts e.backtrace.join("\n")
+    end
+  end
+  
+  desc "Generate evaluations for all teams"
+  task :generate_all_team_evaluations => :environment do
+    # Get all teams with summaries
+    teams = TeamSummary.all.pluck(:team_name)
+    
+    puts "Found #{teams.count} teams with summaries"
+    
+    teams.each do |team_name|
+      puts "\nProcessing team: #{team_name}"
+      Rake::Task["test_data:generate_team_evaluation"].invoke(team_name)
+      # Reset the task to be able to call it again
+      Rake::Task["test_data:generate_team_evaluation"].reenable
+    end
+    
+    puts "\nAll team evaluations generated successfully"
+  end
+  
+  desc "Show hackathon leaderboard"
+  task :show_leaderboard => :environment do
+    evaluations = TeamEvaluation.order(total_score: :desc)
+    
+    if evaluations.empty?
+      puts "No team evaluations found. Generate team evaluations first."
+      exit 0
+    end
+    
+    puts "🏆 METATHON 2025 LEADERBOARD 🏆"
+    puts "================================"
+    puts ""
+    
+    # Display the leaderboard
+    evaluations.each_with_index do |eval, index|
+      rank = index + 1
+      medal = case rank
+              when 1 then "🥇"
+              when 2 then "🥈"
+              when 3 then "🥉"
+              else "  "
+              end
+      
+      # Calculate stars based on score (1-5)
+      stars = "★" * eval.total_score.to_i + "☆" * (5 - eval.total_score.to_i)
+      
+      # Highlight top performers
+      team_display = eval.total_score >= 4.5 ? "#{eval.team_name} 🚀" : eval.team_name
+      
+      puts "#{medal} #{rank}. #{team_display}: #{eval.total_score}/5.0  #{stars}"
+      
+      # Display top scores for this team
+      top_scores = eval.scores.sort_by { |_, data| -data["score"].to_f }.first(2)
+      puts "   Top criteria: " + top_scores.map { |name, data| "#{name} (#{data["score"]}/5.0)" }.join(", ")
+    end
+    
+    puts "\n================================"
+    puts "Generated on #{Time.now.strftime('%B %d, %Y')}"
+  end
+  
   desc "Generate hackathon insights summary"
   task :generate_hackathon_insights => :environment do
     puts "Generating hackathon insights summary..."
@@ -498,5 +730,46 @@ namespace :test_data do
     puts "\n===== HACKATHON INSIGHTS ====="
     puts insights
     puts "\n===== END OF INSIGHTS ====="
+  end
+  
+  desc "Generate all data for frontend demo"
+  task :generate_all_demo_data => :environment do
+    puts "🚀 Generating all data for frontend demo..."
+    
+    # Clear existing data if present
+    TeamSummary.destroy_all
+    TeamEvaluation.destroy_all
+    HackathonInsight.destroy_all
+    puts "Cleared existing data"
+    
+    # Step 1: Process PDFs
+    puts "\n📄 Step 1: Processing PDF documents..."
+    Rake::Task["test_data:start_ingestion"].invoke
+    
+    # Step 2: Generate team summaries for each team
+    puts "\n📊 Step 2: Generating team summaries..."
+    teams = ["TeamAlpha", "TeamBeta", "TeamGamma", "TeamDelta", "TeamOmega"]
+    
+    teams.each do |team_name|
+      puts "  Generating summary for #{team_name}..."
+      Rake::Task["test_data:generate_team_summary"].reenable
+      Rake::Task["test_data:generate_team_summary"].invoke(team_name)
+    end
+    
+    # Step 3: Generate team evaluations
+    puts "\n🏅 Step 3: Generating team evaluations..."
+    Rake::Task["test_data:generate_all_team_evaluations"].invoke
+    
+    # Step 4: Generate hackathon insights
+    puts "\n🔍 Step 4: Generating hackathon insights..."
+    Rake::Task["test_data:generate_hackathon_insights"].invoke
+    
+    # Step 5: Display leaderboard
+    puts "\n🏆 Step 5: Displaying leaderboard..."
+    Rake::Task["test_data:show_leaderboard"].invoke
+    
+    # Done
+    puts "\n✅ All demo data generated successfully!"
+    puts "Frontend integration can now proceed with a complete dataset."
   end
 end
