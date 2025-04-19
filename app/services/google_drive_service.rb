@@ -1,6 +1,8 @@
 require "google/apis/drive_v3"
+require_relative "concerns/service_error_handler"
 
 class GoogleDriveService
+  include ServiceErrorHandler
   def initialize
     @drive_service = Google::Apis::DriveV3::DriveService.new
     @drive_service.authorization = authorize
@@ -106,9 +108,32 @@ class GoogleDriveService
         # Try direct download first
         @drive_service.get_file(file_id, download_dest: content_io)
       rescue Google::Apis::ClientError => e
-        # If it's a Google Document, try to export it as PDF
-        @drive_service.export_file(file_id, "application/pdf", download_dest: content_io)
+        if e.status_code == 404
+          log_error("Google Drive file not found", e, { file_id: file_id })
+          raise ApiErrors::ResourceNotFoundError.new("File not found in Google Drive: #{file_id}")
+        elsif is_export_required_error?(e)
+          # If it's a Google Document, try to export it as PDF
+          begin
+            @drive_service.export_file(file_id, "application/pdf", download_dest: content_io)
+          rescue Google::Apis::ClientError => export_error
+            log_error("Google Drive export error", export_error, { file_id: file_id })
+            raise ApiErrors::GoogleDriveError.new("Failed to export Google Drive file: #{export_error.message}")
+          end
+        else
+          log_error("Google Drive download error", e, { file_id: file_id })
+          raise ApiErrors::GoogleDriveError.new("Failed to download file: #{e.message}")
+        end
+      rescue Google::Apis::ServerError => e
+        log_error("Google Drive server error", e, { file_id: file_id })
+        raise ApiErrors::GoogleDriveError.new("Google Drive service error: #{e.message}")
+      rescue Google::Apis::AuthorizationError => e
+        log_error("Google Drive authorization error", e, { file_id: file_id })
+        raise ApiErrors::GoogleDriveError.new("Google Drive authorization error: Please check your credentials")
+      rescue => e
+        log_error("Google Drive unexpected error", e, { file_id: file_id })
+        raise ApiErrors::GoogleDriveError.new("Unexpected error accessing Google Drive: #{e.message}")
       end
+
       content_io.string
     else
       # In development/test, return mock content based on file ID pattern
@@ -127,6 +152,29 @@ class GoogleDriveService
   end
 
   private
+  # Helper method to detect various Google Document export error messages
+  def is_export_required_error?(error)
+    return false unless error.is_a?(Google::Apis::ClientError)
+    
+    error_message = error.message.to_s.downcase
+    
+    # Debug output for test failures
+    Rails.logger.debug("Checking export error: #{error_message}")
+    
+    # Check for various potential error messages related to export requirements
+    is_export_error = error_message.include?("exportlinks") ||
+                      error_message.include?("export_links") ||
+                      error_message.include?("cannot download") ||
+                      error_message.include?("use export") ||
+                      error_message.include?("not downloadable") ||
+                      error_message.include?("google apps") ||
+                      error_message.include?("google-apps") ||
+                      error_message.include?("this document cannot be downloaded")
+    
+    Rails.logger.debug("Is export error? #{is_export_error}")
+    return is_export_error
+  end
+
   def authorize
     if Rails.env.production? || Rails.env.development?
       # Try to use environment variables first
@@ -187,8 +235,7 @@ class GoogleDriveService
       nil
     end
   rescue StandardError => e
-    Rails.logger.error("Failed to authenticate with Google Drive API: #{e.message}")
-    Rails.logger.error(e.backtrace.join("\n"))
-    nil # Return nil instead of raising to allow the app to start, but API requests will fail
+    log_error("Failed to authenticate with Google Drive API", e)
+    nil # Return nil instead of raising to allow the app to start, but API requests will fail later
   end
 end

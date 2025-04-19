@@ -1,5 +1,7 @@
 module Ai
   class Client
+    require_relative "../concerns/service_error_handler"
+    include ServiceErrorHandler
     def initialize(provider = nil)
       @provider = provider || default_provider
     end
@@ -173,7 +175,7 @@ module Ai
       else
         # Only raise in production, use mock provider in other environments
         if Rails.env.production?
-          raise "No AI provider credentials found. Set CLAUDE_API_KEY or OPENAI_API_KEY environment variables."
+          raise ApiErrors::AiServiceError.new("No AI provider credentials found. Set CLAUDE_API_KEY or OPENAI_API_KEY environment variables.")
         else
           :mock
         end
@@ -182,95 +184,109 @@ module Ai
 
     def call_claude_api(content, prompt)
       api_key = ENV["CLAUDE_API_KEY"]
-      raise "CLAUDE_API_KEY environment variable not set" if api_key.blank?
+      if api_key.blank?
+        log_error("Claude API key not configured")
+        raise ApiErrors::AiServiceError.new("Claude API key not configured", "Claude")
+      end
 
       # Use Base64 encoding for binary content
       content_base64 = Base64.strict_encode64(content) if content.is_a?(String)
 
-      response = HTTParty.post(
-        "https://api.anthropic.com/v1/messages",
-        headers: {
-          "Content-Type" => "application/json",
-          "x-api-key" => api_key,
-          "anthropic-version" => "2023-06-01"
-        },
-        body: {
-          model: "claude-3-opus-20240229",
-          max_tokens: 4000,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: prompt
-                },
-                content.is_a?(String) ? {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: determine_media_type(content),
-                    data: content_base64
-                  }
-                } : nil
-              ].compact
-            }
-          ]
-        }.to_json
-      )
+      begin
+        response = HTTParty.post(
+          "https://api.anthropic.com/v1/messages",
+          headers: {
+            "Content-Type" => "application/json",
+            "x-api-key" => api_key,
+            "anthropic-version" => "2023-06-01"
+          },
+          body: {
+            model: "claude-3-opus-20240229",
+            max_tokens: 4000,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: prompt
+                  },
+                  content.is_a?(String) ? {
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: determine_media_type(content),
+                      data: content_base64
+                    }
+                  } : nil
+                ].compact
+              }
+            ]
+          }.to_json,
+          timeout: 60  # Add a timeout to prevent hanging requests
+        )
 
-      unless response.success?
-        Rails.logger.error("Claude API error: #{response.code} - #{response.body}")
-        raise "Claude API error: #{response.code}"
+        # Handle response using our helper
+        handle_api_response("Claude", response)
+
+        # Extract the response content from Claude API
+        JSON.parse(response.body).dig("content", 0, "text")
+      rescue HTTParty::Error, Timeout::Error, SocketError, JSON::ParserError => e
+        # Handle network and parsing errors
+        handle_request_error("Claude", e)
       end
-
-      # Extract the response content from Claude API
-      JSON.parse(response.body).dig("content", 0, "text")
     end
 
     def call_openai_api(content, prompt)
       api_key = ENV["OPENAI_API_KEY"]
-      raise "OPENAI_API_KEY environment variable not set" if api_key.blank?
+      if api_key.blank?
+        log_error("OpenAI API key not configured")
+        raise ApiErrors::AiServiceError.new("OpenAI API key not configured", "OpenAI")
+      end
 
       # Use Base64 encoding for binary content
       content_base64 = Base64.strict_encode64(content) if content.is_a?(String)
 
-      response = HTTParty.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers: {
-          "Content-Type" => "application/json",
-          "Authorization" => "Bearer #{api_key}"
-        },
-        body: {
-          model: "gpt-4-vision-preview",
-          max_tokens: 4000,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: prompt
-                },
-                content.is_a?(String) ? {
-                  type: "image_url",
-                  image_url: {
-                    url: "data:#{determine_media_type(content)};base64,#{content_base64}"
-                  }
-                } : nil
-              ].compact
-            }
-          ]
-        }.to_json
-      )
+      begin
+        response = HTTParty.post(
+          "https://api.openai.com/v1/chat/completions",
+          headers: {
+            "Content-Type" => "application/json",
+            "Authorization" => "Bearer #{api_key}"
+          },
+          body: {
+            model: "gpt-4-vision-preview",
+            max_tokens: 4000,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: prompt
+                  },
+                  content.is_a?(String) ? {
+                    type: "image_url",
+                    image_url: {
+                      url: "data:#{determine_media_type(content)};base64,#{content_base64}"
+                    }
+                  } : nil
+                ].compact
+              }
+            ]
+          }.to_json,
+          timeout: 60  # Add a timeout to prevent hanging requests
+        )
 
-      unless response.success?
-        Rails.logger.error("OpenAI API error: #{response.code} - #{response.body}")
-        raise "OpenAI API error: #{response.code}"
+        # Handle response using our helper
+        handle_api_response("OpenAI", response)
+
+        # Extract the response content from OpenAI API
+        JSON.parse(response.body).dig("choices", 0, "message", "content")
+      rescue HTTParty::Error, Timeout::Error, SocketError, JSON::ParserError => e
+        # Handle network and parsing errors
+        handle_request_error("OpenAI", e)
       end
-
-      # Extract the response content from OpenAI API
-      JSON.parse(response.body).dig("choices", 0, "message", "content")
     end
 
     def determine_media_type(content)
