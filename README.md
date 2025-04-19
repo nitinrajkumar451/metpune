@@ -668,14 +668,25 @@ Generates a new hackathon trends analysis based on all team summaries.
    - Google Drive credentials
    - Rails secret key base
    - Sidekiq admin credentials
+   - Error reporting service credentials (SENTRY_DSN or similar)
 
-2. Use the provided Procfile with your platform of choice:
+2. Set up production database:
+   ```bash
+   RAILS_ENV=production rails db:create db:migrate
+   ```
+
+3. Precompile assets (if needed):
+   ```bash
+   RAILS_ENV=production rails assets:precompile
+   ```
+
+4. Use the provided Procfile with your platform of choice:
    ```bash
    # Start web server and worker processes
    foreman start
    ```
 
-3. For containerized deployment, use the provided Dockerfile:
+5. For containerized deployment, use the provided Dockerfile:
    ```bash
    # Build the container
    docker build -t metathon-backend .
@@ -684,7 +695,7 @@ Generates a new hackathon trends analysis based on all team summaries.
    docker run -p 3000:3000 --env-file .env metathon-backend
    ```
 
-### Background Jobs
+### Background Jobs with Sidekiq
 
 The application uses Sidekiq for processing all background jobs:
 
@@ -699,6 +710,86 @@ For high-traffic or production environments:
 1. Adjust concurrency in `config/sidekiq.yml` based on your server capabilities
 2. Consider using multiple Sidekiq processes with different queue priorities
 3. Monitor the Sidekiq dashboard for job performance and failure rates
+
+### Sidekiq Production Configuration
+
+Sidekiq is configured for production use with:
+
+1. **Redis connection pooling**: Proper connection pool sizing
+2. **Error handling**: Failed jobs are logged and reported to error monitoring
+3. **Auto-retry policy**: Jobs will automatically retry with exponential backoff
+4. **Monitoring**: Metrics exposed for system monitoring
+5. **Queue prioritization**: Critical jobs run in high-priority queues
+
+Configure Sidekiq with the following environment variables:
+
+```
+# Redis connection (required)
+REDIS_URL=redis://your-redis-server:6379/0
+
+# Redis connection pool size (optional, default: 5)
+REDIS_POOL_SIZE=25
+
+# Sidekiq concurrency (optional, default: 10)
+SIDEKIQ_CONCURRENCY=25
+
+# Sidekiq admin UI credentials (optional, default: none)
+SIDEKIQ_USERNAME=admin
+SIDEKIQ_PASSWORD=secure_password
+
+# Job retry attempts (optional, default: 25)
+SIDEKIQ_MAX_RETRY_COUNT=10
+```
+
+### Error Handling and Monitoring
+
+This application includes a robust error handling system:
+
+1. **Controller error handling**: Standardized API responses for all error types
+2. **Service error handling**: Proper error classification and logging
+3. **Background job error handling**: Failed jobs are captured and reported
+4. **External API error handling**: All third-party service errors are properly handled
+
+For production monitoring, set up an error reporting service:
+
+```
+# Sentry configuration
+SENTRY_DSN=https://your-sentry-key@sentry.io/project
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.1
+
+# OR Honeybadger configuration
+HONEYBADGER_API_KEY=your-honeybadger-key
+
+# OR New Relic configuration
+NEW_RELIC_LICENSE_KEY=your-new-relic-key
+```
+
+### Health Checks and Monitoring
+
+The application provides the following health endpoints:
+
+1. `/health`: Basic application health check
+2. `/health/db`: Database connection check
+3. `/health/redis`: Redis connection check
+4. `/health/sidekiq`: Sidekiq process status
+
+Use these endpoints with your monitoring system to ensure all components are functioning properly.
+
+### Deployment Checklist
+
+Before deploying to production:
+
+1. ✅ Run all tests (`bundle exec rspec`)
+2. ✅ Verify all error handling is working correctly
+3. ✅ Check all API documentation is up to date
+4. ✅ Configure environment variables
+5. ✅ Set up database properly
+6. ✅ Configure Redis and Sidekiq
+7. ✅ Set up error monitoring
+8. ✅ Enable proper logging
+9. ✅ Configure SSL and security headers
+10. ✅ Set up database backups
 
 ## License
 

@@ -194,7 +194,7 @@ RSpec.describe GoogleDriveService do
             it "exports the file as PDF when direct download fails with message: '#{error_message}'" do
               allow(export_service).to receive(:get_file).with(file_id, download_dest: instance_of(StringIO))
                 .and_raise(Google::Apis::ClientError.new(error_message))
-              
+
               expect(export_service_instance.download_file(file_id)).to eq('sample file content')
             end
           end
