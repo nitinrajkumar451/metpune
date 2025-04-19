@@ -26,15 +26,47 @@ module ServiceErrorHandler
 
       error_message = begin
         response_body = JSON.parse(response.body)
-        if response_body["error"].is_a?(Hash) && response_body["error"]["message"].present?
-          response_body["error"]["message"]
-        elsif response_body["error"].is_a?(String)
-          response_body["error"]
+        
+        # Handle different error formats from different APIs
+        case service_name
+        when "Claude"
+          # Claude-specific error handling
+          if response_body["error"].present?
+            if response_body["error"]["message"].present?
+              response_body["error"]["message"]
+            elsif response_body["error"].is_a?(String)
+              response_body["error"]
+            else
+              response_body["error"].to_s
+            end
+          else
+            "Unknown Claude API error"
+          end
+        when "OpenAI"
+          # OpenAI-specific error handling
+          if response_body["error"].present?
+            if response_body["error"]["message"].present?
+              response_body["error"]["message"]
+            else
+              response_body["error"].to_s
+            end
+          else
+            "Unknown OpenAI API error"
+          end
         else
-          "Unknown error"
+          # Generic error handling for other services
+          if response_body["error"].is_a?(Hash) && response_body["error"]["message"].present?
+            response_body["error"]["message"]
+          elsif response_body["error"].is_a?(String)
+            response_body["error"]
+          else
+            "Unknown error"
+          end
         end
-      rescue
-        "Unknown error"
+      rescue => e
+        # Log the parsing error
+        Rails.logger.warn("Error parsing #{service_name} error response: #{e.message}")
+        "Unknown error (could not parse response)"
       end
 
       raise ApiErrors::ExternalServiceError.new("#{service_name} API error (#{response.code}): #{error_message}", service_name)
