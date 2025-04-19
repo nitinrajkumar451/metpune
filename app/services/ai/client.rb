@@ -6,6 +6,20 @@ module Ai
       @provider = provider || default_provider
     end
 
+    def generate_pdf_summary(content)
+      # Skip API calls in development/test
+      return mock_pdf_summary unless Rails.env.production?
+
+      case @provider
+      when :claude
+        call_claude_api(content, create_pdf_summary_prompt)
+      when :openai
+        call_openai_api(content, create_pdf_summary_prompt)
+      else
+        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+      end
+    end
+    
     def extract_text_from_document(content, file_type)
       # Skip API calls in development/test
       return mock_document_response(file_type) unless Rails.env.production?
@@ -303,6 +317,20 @@ module Ai
       end
     end
 
+    def create_pdf_summary_prompt
+      "You're analyzing a PDF document from a hackathon project. Please provide a concise yet comprehensive summary of this document that captures:
+
+      1. Main objectives and goals described
+      2. Key technical approaches and methodologies  
+      3. Important features or functionality highlighted
+      4. Technologies, frameworks, and tools mentioned
+      5. Any notable results, metrics, or achievements
+      6. Challenges or limitations discussed
+      7. Future work or improvements suggested
+
+      Structure your summary in coherent paragraphs. Be specific about technical details when they appear in the document. Try to accurately represent the document's main points without being too wordy."
+    end
+    
     def create_document_prompt(file_type)
       case file_type
       when "pdf"
@@ -473,6 +501,20 @@ module Ai
     end
 
     # Mock responses for testing
+    def mock_pdf_summary
+      "This document presents a comprehensive overview of the team's hackathon project, a document analysis platform. The primary objective is to develop an AI-powered system that can ingest, process, and extract insights from various document types, with a focus on PDFs for the MVP.
+
+      The team employs a multi-layered architecture with Rails 8 on the backend and React for the frontend. Their approach involves direct PDF processing using AI models to generate concise summaries without intermediate text extraction steps. This streamlined approach allows for faster processing and better context preservation.
+
+      Key features include automated document ingestion from Google Drive, AI-powered summarization using Claude/OpenAI, background processing with Sidekiq, and a RESTful API for client applications. The system also supports team-level insights generation by analyzing patterns across document summaries.
+
+      Technologies mentioned include Ruby on Rails, PostgreSQL, Redis, Sidekiq, Google Drive API, and Claude/OpenAI for AI capabilities. The document claims a 40% reduction in document processing time compared to manual methods and an 85% user satisfaction rate in preliminary testing.
+
+      Challenges discussed include optimizing the AI prompts for quality summaries, handling PDF formatting variations, and managing API rate limits. The team acknowledges limitations around handling complex tables and charts in PDFs.
+
+      Future improvements planned include support for additional document types (PPTX, DOCX, images), multi-language capabilities, collaborative annotation features, and a more sophisticated visualization dashboard for insights."
+    end
+    
     def mock_document_response(file_type)
       if file_type == "pdf"
         "Sample PDF content extracted from the document.\n\nThis is a mock extraction for testing purposes.\n\nContent appears to be a technical document with several sections including introduction, methodology, and results."
