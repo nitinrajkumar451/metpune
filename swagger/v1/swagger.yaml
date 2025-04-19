@@ -318,6 +318,440 @@ paths:
                     type: string
                 required:
                 - error
+  "/api/team_blogs":
+    get:
+      summary: Lists all team blogs
+      tags:
+      - Team Blogs
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        required: false
+        description: Filter team blogs by status
+      responses:
+        '200':
+          description: team blogs found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_blogs:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/TeamBlog"
+                required:
+                - team_blogs
+
+  "/api/team_blogs/{team_name}":
+    get:
+      summary: Retrieves a team blog
+      tags:
+      - Team Blogs
+      parameters:
+      - name: team_name
+        in: path
+        required: true
+        description: Team name
+        schema:
+          type: string
+      responses:
+        '200':
+          description: team blog found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_blog:
+                    "$ref": "#/components/schemas/TeamBlog"
+                required:
+                - team_blog
+        '404':
+          description: team blog not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+
+  "/api/team_blogs/markdown/{team_name}":
+    get:
+      summary: Gets a team blog in markdown format
+      tags:
+      - Team Blogs
+      parameters:
+      - name: team_name
+        in: path
+        required: true
+        description: Team name
+        schema:
+          type: string
+      responses:
+        '200':
+          description: team blog found
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          description: team blog not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+
+  "/api/team_blogs/generate":
+    post:
+      summary: Generates a blog post for a team
+      tags:
+      - Team Blogs
+      parameters:
+      - name: team_name
+        in: query
+        schema:
+          type: string
+        required: true
+        description: The team name to generate a blog for
+      responses:
+        '200':
+          description: team blog generation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+        '400':
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+
+  "/api/team_evaluations":
+    get:
+      summary: Lists all team evaluations
+      tags:
+      - Team Evaluations
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        required: false
+        description: Filter team evaluations by status
+      responses:
+        '200':
+          description: team evaluations found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_evaluations:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/TeamEvaluation"
+                required:
+                - team_evaluations
+
+  "/api/team_evaluations/{team_name}":
+    get:
+      summary: Retrieves a team evaluation
+      tags:
+      - Team Evaluations
+      parameters:
+      - name: team_name
+        in: path
+        required: true
+        description: Team name
+        schema:
+          type: string
+      responses:
+        '200':
+          description: team evaluation found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_evaluation:
+                    "$ref": "#/components/schemas/TeamEvaluation"
+                required:
+                - team_evaluation
+        '404':
+          description: team evaluation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+
+  "/api/team_evaluations/generate":
+    post:
+      summary: Generates an evaluation for a team based on judging criteria
+      tags:
+      - Team Evaluations
+      parameters:
+      - name: team_name
+        in: query
+        schema:
+          type: string
+        required: true
+        description: The team name to evaluate
+      responses:
+        '200':
+          description: team evaluation generation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                - message
+        '400':
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+
+  "/api/judging_criteria":
+    get:
+      summary: Lists all judging criteria
+      tags:
+      - Judging Criteria
+      responses:
+        '200':
+          description: judging criteria found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  judging_criterions:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/JudgingCriterion"
+                required:
+                - judging_criterions
+    post:
+      summary: Creates a new judging criterion
+      tags:
+      - Judging Criteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                judging_criterion:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    weight:
+                      type: number
+                      format: float
+                  required:
+                  - name
+                  - description
+                  - weight
+              required:
+              - judging_criterion
+      responses:
+        '201':
+          description: judging criterion created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  judging_criterion:
+                    "$ref": "#/components/schemas/JudgingCriterion"
+                required:
+                - judging_criterion
+        '422':
+          description: unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                required:
+                - errors
+
+  "/api/judging_criteria/{id}":
+    get:
+      summary: Retrieves a judging criterion
+      tags:
+      - Judging Criteria
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Judging criterion ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: judging criterion found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  judging_criterion:
+                    "$ref": "#/components/schemas/JudgingCriterion"
+                required:
+                - judging_criterion
+        '404':
+          description: judging criterion not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+    put:
+      summary: Updates a judging criterion
+      tags:
+      - Judging Criteria
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Judging criterion ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                judging_criterion:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    weight:
+                      type: number
+                      format: float
+              required:
+              - judging_criterion
+      responses:
+        '200':
+          description: judging criterion updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  judging_criterion:
+                    "$ref": "#/components/schemas/JudgingCriterion"
+                required:
+                - judging_criterion
+        '404':
+          description: judging criterion not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+        '422':
+          description: unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                required:
+                - errors
+    delete:
+      summary: Deletes a judging criterion
+      tags:
+      - Judging Criteria
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Judging criterion ID
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: judging criterion deleted
+        '404':
+          description: judging criterion not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+
 servers:
 - url: http://localhost:3000
   description: Development server
@@ -422,3 +856,87 @@ components:
           format: date-time
       required:
       - status
+    TeamBlog:
+      type: object
+      properties:
+        id:
+          type: integer
+        team_name:
+          type: string
+        content:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - team_name
+      - status
+    TeamEvaluation:
+      type: object
+      properties:
+        id:
+          type: integer
+        team_name:
+          type: string
+        content:
+          type: string
+          nullable: true
+        scores:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: number
+            format: float
+        total_score:
+          type: number
+          format: float
+          nullable: true
+        status:
+          type: string
+          enum:
+          - pending
+          - processing
+          - success
+          - failed
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - team_name
+      - status
+    JudgingCriterion:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        weight:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - name
+      - description
+      - weight

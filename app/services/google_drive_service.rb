@@ -155,24 +155,18 @@ class GoogleDriveService
   # Helper method to detect various Google Document export error messages
   def is_export_required_error?(error)
     return false unless error.is_a?(Google::Apis::ClientError)
-    
+
     error_message = error.message.to_s.downcase
-    
-    # Debug output for test failures
-    Rails.logger.debug("Checking export error: #{error_message}")
-    
+
     # Check for various potential error messages related to export requirements
-    is_export_error = error_message.include?("exportlinks") ||
-                      error_message.include?("export_links") ||
-                      error_message.include?("cannot download") ||
-                      error_message.include?("use export") ||
-                      error_message.include?("not downloadable") ||
-                      error_message.include?("google apps") ||
-                      error_message.include?("google-apps") ||
-                      error_message.include?("this document cannot be downloaded")
-    
-    Rails.logger.debug("Is export error? #{is_export_error}")
-    return is_export_error
+    error_message.include?("exportlinks") ||
+    error_message.include?("export_links") ||
+    error_message.include?("cannot download") ||
+    error_message.include?("use export") ||
+    error_message.include?("not downloadable") ||
+    error_message.include?("google apps") ||
+    error_message.include?("google-apps") ||
+    error_message.include?("this document cannot be downloaded")
   end
 
   def authorize
