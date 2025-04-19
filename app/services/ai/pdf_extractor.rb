@@ -7,17 +7,13 @@ module Ai
     def process(submission, google_drive_service)
       file_content = google_drive_service.download_file(submission.source_url)
 
-      # Use the AI client to extract text from the document
-      extracted_text = @client.extract_text_from_document(file_content, submission.file_type)
+      # For MVP, generate summary directly from PDF content
+      # Skip the separate text extraction step
+      summary = @client.generate_pdf_summary(file_content)
 
-      # Generate a summary using the extracted text
-      summary = @client.summarize_content(file_content, submission.file_type, extracted_text)
-
-      # Return both the extracted text and summary
-      {
-        text: extracted_text,
-        summary: summary
-      }
+      # For MVP, we only need to return the summary
+      # The raw text extraction is skipped
+      summary
     end
   end
 end

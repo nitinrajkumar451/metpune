@@ -4,6 +4,15 @@ RSpec.describe Ai::Client do
   let(:client) { described_class.new }
   let(:test_content) { 'Sample content for testing' }
 
+  describe '#generate_pdf_summary' do
+    it 'returns mock response in test environment' do
+      result = client.generate_pdf_summary(test_content)
+      expect(result).to include('This document presents a comprehensive overview')
+      expect(result).to include('The team employs a multi-layered architecture')
+      expect(result).to include('Key features include automated document ingestion')
+    end
+  end
+
   describe '#extract_text_from_document' do
     it 'returns mock response in test environment' do
       result = client.extract_text_from_document(test_content, 'pdf')
@@ -72,6 +81,16 @@ RSpec.describe Ai::Client do
         result = client.summarize_content(test_content, 'pdf', extracted_text)
         expect(result).to include('Summary of PDF document')
       end
+    end
+  end
+
+  describe '#create_pdf_summary_prompt' do
+    it 'creates detailed prompt for PDF analysis' do
+      prompt = client.send(:create_pdf_summary_prompt)
+      expect(prompt).to include('analyzing a PDF document from a hackathon project')
+      expect(prompt).to include('Main objectives and goals')
+      expect(prompt).to include('Key technical approaches')
+      expect(prompt).to include('Technologies, frameworks, and tools')
     end
   end
 

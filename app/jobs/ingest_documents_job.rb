@@ -1,13 +1,15 @@
 class IngestDocumentsJob < ApplicationJob
   queue_as :default
 
+  # For MVP, we're only supporting PDF files
   SUPPORTED_FILE_TYPES = {
-    "application/pdf" => "pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => "docx",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation" => "pptx",
-    "image/jpeg" => "jpg",
-    "image/png" => "png",
-    "application/zip" => "zip"
+    "application/pdf" => "pdf"
+    # Additional file types will be supported in future versions:
+    # "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => "docx",
+    # "application/vnd.openxmlformats-officedocument.presentationml.presentation" => "pptx",
+    # "image/jpeg" => "jpg",
+    # "image/png" => "png",
+    # "application/zip" => "zip"
   }
 
   def perform
@@ -51,24 +53,19 @@ class IngestDocumentsJob < ApplicationJob
 
     begin
       Rails.logger.info("Processing submission #{submission.id} (#{submission.file_type})")
-      result = processor.process(submission, google_drive_service)
+      summary = processor.process(submission, google_drive_service)
 
-      if result.present?
-        # The processor now returns a hash with :text and :summary keys
-        raw_text = result.is_a?(Hash) ? result[:text] : result
-        summary = result.is_a?(Hash) ? result[:summary] : nil
-
-        # Update with both raw text and summary
+      if summary.present?
+        # For MVP, we only store the summary directly (no separate raw_text)
         submission.update!(
-          raw_text: raw_text,
           summary: summary,
           status: "success"
         )
 
         Rails.logger.info("Successfully processed submission #{submission.id}")
       else
-        Rails.logger.error("No content extracted from submission #{submission.id}")
-        submission.update!(status: "failed", raw_text: "Error: No content could be extracted")
+        Rails.logger.error("No summary generated for submission #{submission.id}")
+        submission.update!(status: "failed", summary: "Error: No summary could be generated")
       end
     rescue => e
       Rails.logger.error("Error processing submission #{submission.id}: #{e.class} - #{e.message}")
@@ -76,22 +73,30 @@ class IngestDocumentsJob < ApplicationJob
 
       # Provide more detailed error info in development mode
       error_details = Rails.env.development? ? "#{e.class}: #{e.message}" : "Processing error"
-      submission.update!(status: "failed", raw_text: "Error: #{error_details}")
+      submission.update!(status: "failed", summary: "Error: #{error_details}")
     end
   end
 
   def processor_for_file_type(file_type)
-    case file_type
-    when "pdf", "docx"
+    # For MVP, we only support PDF files
+    if file_type == "pdf"
       Ai::PdfExtractor.new
-    when "pptx"
-      Ai::PptxSummarizer.new
-    when "jpg", "png"
-      Ai::OcrExtractor.new
-    when "zip"
-      Ai::ZipProcessor.new
     else
-      raise ArgumentError, "Unsupported file type: #{file_type}"
+      raise ArgumentError, "Unsupported file type: #{file_type}. MVP only supports PDF files."
     end
+    
+    # Future implementation will support additional file types:
+    # case file_type
+    # when "pdf", "docx"
+    #   Ai::PdfExtractor.new
+    # when "pptx"
+    #   Ai::PptxSummarizer.new
+    # when "jpg", "png"
+    #   Ai::OcrExtractor.new
+    # when "zip"
+    #   Ai::ZipProcessor.new
+    # else
+    #   raise ArgumentError, "Unsupported file type: #{file_type}"
+    # end
   end
 end

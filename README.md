@@ -4,16 +4,22 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
 
 ## Features
 
-- Document ingestion from Google Drive
-- Automatic processing based on file type
-- Support for PDF, PPTX, DOCX, JPG, PNG, and ZIP files
+### MVP (Current Version)
+- PDF document ingestion from Google Drive
+- Direct AI-powered PDF summarization
 - Background processing with Sidekiq
 - RESTful API for accessing submissions
-- Team summarization across multiple documents
+- Team summarization across multiple PDF documents
 - AI-powered team evaluation with customizable judging criteria
 - Leaderboard generation with team rankings
 - Blog post generation from team summaries
 - Hackathon-wide trend analysis and insights generation
+
+### Planned Future Enhancements
+- Support for additional file types (PPTX, DOCX, JPG, PNG, and ZIP files)
+- Multi-language support
+- Collaborative annotation features
+- Visualization dashboard for insights
 
 ## Technology Stack
 
@@ -28,16 +34,27 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
 
 The application uses AI services for document processing, summarization, evaluation, and content generation:
 
-### Document Processing
+### Document Processing (MVP)
 
-- **PDF and DOCX files**: Text extraction with layout preservation
+- **PDF files**: Direct summarization of PDF documents
+  - Technical objectives and goals
+  - Methodologies and approaches
+  - Features and functionality
+  - Technologies and tools
+  - Results and metrics
+  - Challenges and limitations
+  - Future work suggestions
+
+### Planned Document Processing Extensions
+
+- **DOCX files**: Text extraction with layout preservation
 - **PowerPoint presentations**: Slide-by-slide content summarization
 - **Images (JPG, PNG)**: OCR text extraction
 - **ZIP archives**: Extract and process all contained files based on their types
 
 ### AI Summarization
 
-- **Individual files**: Generates concise summaries based on extracted content
+- **Individual PDF summaries**: Generates concise, meaningful summaries directly from PDF content
 - **Team summaries**: Creates comprehensive reports that analyze all team submissions
   - Product objectives
   - Key achievements
