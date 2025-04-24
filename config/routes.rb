@@ -75,31 +75,62 @@ Rails.application.routes.draw do
 
   # API routes
   namespace :api do
+    # Hackathon resources
+    resources :hackathons do
+      # Submissions endpoints (nested under hackathon)
+      resources :submissions, only: [ :index, :show ]
+      get "/summaries", to: "submissions#summaries"
+      post "/start_ingestion", to: "submissions#start_ingestion"
+
+      # Team summaries endpoints (nested under hackathon)
+      resources :team_summaries, only: [ :index ]
+      get "/team_summaries/:team_name", to: "team_summaries#show"
+      post "/team_summaries/generate", to: "team_summaries#generate"
+
+      # Judging criteria endpoints (nested under hackathon)
+      resources :judging_criteria
+
+      # Team evaluations endpoints (nested under hackathon)
+      resources :team_evaluations, only: [ :index ]
+      get "/team_evaluations/:team_name", to: "team_evaluations#show"
+      post "/team_evaluations/generate", to: "team_evaluations#generate"
+      get "/team_evaluations/status", to: "team_evaluations#status"
+      get "/leaderboard", to: "team_evaluations#leaderboard"
+
+      # Team blogs endpoints (nested under hackathon)
+      resources :team_blogs, only: [ :index ]
+      get "/team_blogs/:team_name", to: "team_blogs#show"
+      get "/team_blogs/:team_name/markdown", to: "team_blogs#markdown"
+      post "/team_blogs/generate", to: "team_blogs#generate"
+
+      # Hackathon insights endpoints (nested under hackathon)
+      get "/hackathon_insights", to: "hackathon_insights#index"
+      get "/hackathon_insights/markdown", to: "hackathon_insights#markdown"
+      post "/hackathon_insights/generate", to: "hackathon_insights#generate"
+    end
+    
+    # Legacy endpoints (kept for backward compatibility)
     resources :submissions, only: [ :index, :show ]
     get "/summaries", to: "submissions#summaries"
     post "/start_ingestion", to: "submissions#start_ingestion"
 
-    # Team summaries endpoints
     resources :team_summaries, only: [ :index ]
     get "/team_summaries/:team_name", to: "team_summaries#show"
     post "/team_summaries/generate", to: "team_summaries#generate"
 
-    # Judging criteria endpoints
     resources :judging_criteria
 
-    # Team evaluations endpoints
     resources :team_evaluations, only: [ :index ]
     get "/team_evaluations/:team_name", to: "team_evaluations#show"
     post "/team_evaluations/generate", to: "team_evaluations#generate"
+    get "/team_evaluations/status", to: "team_evaluations#status"
     get "/leaderboard", to: "team_evaluations#leaderboard"
 
-    # Team blogs endpoints
     resources :team_blogs, only: [ :index ]
     get "/team_blogs/:team_name", to: "team_blogs#show"
     get "/team_blogs/:team_name/markdown", to: "team_blogs#markdown"
     post "/team_blogs/generate", to: "team_blogs#generate"
 
-    # Hackathon insights endpoints
     get "/hackathon_insights", to: "hackathon_insights#index"
     get "/hackathon_insights/markdown", to: "hackathon_insights#markdown"
     post "/hackathon_insights/generate", to: "hackathon_insights#generate"

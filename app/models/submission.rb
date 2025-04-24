@@ -1,6 +1,9 @@
 class Submission < ApplicationRecord
+  # Associations
+  belongs_to :hackathon
+  
   # Validations
-  validates :team_name, :filename, :file_type, :source_url, :status, presence: true
+  validates :team_name, :filename, :file_type, :source_url, :status, :hackathon_id, presence: true
   validates :file_type, inclusion: { in: %w[pdf pptx docx jpg png zip] }
   validates :status, inclusion: { in: %w[pending processing success failed] }
 

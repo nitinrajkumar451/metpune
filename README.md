@@ -70,6 +70,51 @@ The application uses AI services for document processing, summarization, evaluat
 - **Detailed feedback**: Provides specific feedback for each criterion
 - **Weighted scoring**: Calculates total score based on criteria importance
 
+#### Team Evaluation Configuration
+
+By default, the system uses real AI API calls in all environments. In development mode, you can enable mock data for faster testing:
+
+```bash
+# Enable mock evaluations (instant success with random scores)
+USE_MOCK_EVALUATIONS=true rails s
+
+# Use real AI calls (default)
+rails s
+```
+
+#### Monitoring Evaluation Status
+
+The leaderboard endpoint (`/api/hackathons/:hackathon_id/leaderboard`) provides detailed status information:
+
+```json
+{
+  "leaderboard": [...],
+  "status": {
+    "pending": 2,
+    "processing": 1,
+    "success": 10,
+    "failed": 0,
+    "total": 13
+  },
+  "complete": false
+}
+```
+
+#### Debug Tasks for Team Evaluations
+
+When working with evaluations, these Rake tasks can help:
+
+```bash
+# Mark all pending/processing evaluations as success
+rails debug:mark_team_evaluations_success
+
+# Force update all non-success evaluations to success
+rails debug:force_update_evaluations
+
+# Force update for a specific hackathon
+HACKATHON_ID=1 rails debug:force_update_evaluations
+```
+
 ### AI Blog Generation
 
 - **Technical blog posts**: Creates structured, engaging content from team summaries
