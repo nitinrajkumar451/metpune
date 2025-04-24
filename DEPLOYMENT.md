@@ -84,6 +84,30 @@ SENTRY_TRACES_SAMPLE_RATE=0.1
    RAILS_ENV=production rails db:seed
    ```
 
+## Scheduled Tasks Configuration
+
+The application uses the `whenever` gem to schedule automated content generation tasks. To set up these scheduled tasks in production:
+
+1. Update the schedule:
+   ```bash
+   RAILS_ENV=production bundle exec whenever --update-crontab metathon
+   ```
+
+2. Verify the crontab entries:
+   ```bash
+   crontab -l
+   ```
+
+You should see entries for the following tasks:
+- Every 10 minutes: `rake auto_blogs:generate`
+- Every 15 minutes: `rake auto_blogs:generate_all`
+- Every 20 minutes: `rake auto_blogs:evaluate`
+
+To clear the scheduled tasks:
+```bash
+RAILS_ENV=production bundle exec whenever --clear-crontab metathon
+```
+
 ## Starting the Application
 
 ### Option 1: Using Foreman
@@ -171,6 +195,14 @@ Access requires the SIDEKIQ_USERNAME and SIDEKIQ_PASSWORD credentials.
    - Verify credentials are correctly set
    - Check that service account has access to the documents
    - Verify folder structure matches expected pattern
+   
+5. **Scheduled Task Issues**
+   - Verify crontab entries have been created correctly
+   - Check if cron service is running (`service cron status`)
+   - Examine cron logs for execution errors
+   - Ensure the application environment is correctly set in schedule.rb
+   - Check the log file specified in schedule.rb (default: log/cron.log)
+   - Try running tasks manually to verify they work outside of cron
 
 ## Backup Strategy
 

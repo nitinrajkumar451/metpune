@@ -37,6 +37,32 @@ As part of simplifying the MVP, we've made the following changes to focus on PDF
 4. **Simpler Data Model**: No need to store raw text separately
 5. **Focused MVP**: Clear scope limits make development and deployment faster
 
+## Automated Content Generation
+
+We've added a comprehensive automated content generation system that follows the same simplification principles:
+
+1. **Automated Workflow**:
+   - Implemented rake tasks that automatically generate content when prerequisites are available
+   - Created a scheduled task system using the `whenever` gem
+   - Added a command-line script for manual execution
+
+2. **Content Dependencies**:
+   - Team Summaries → Team Blogs → Team Evaluations
+   - Each step only proceeds when the previous content is available
+
+3. **Key Features**:
+   - `auto_blogs:generate`: Creates blogs for teams with successful summaries
+   - `auto_blogs:generate_all`: Creates summaries and blogs for all teams
+   - `auto_blogs:evaluate`: Creates evaluations for teams with summaries
+   - `bin/generate_content`: Script to run all tasks in sequence
+
+4. **Scheduled Tasks**:
+   - 10-minute checks for teams needing blogs
+   - 15-minute checks for teams needing summaries
+   - 20-minute checks for teams needing evaluations
+
+This automation streamlines the content generation process and ensures a consistent flow from submissions to evaluation without manual intervention.
+
 ## Future Extensions
 
 The code has been structured to easily extend to other file types in the future:

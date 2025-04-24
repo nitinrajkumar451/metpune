@@ -32,10 +32,6 @@ module Api
         return render json: { error: "Team name is required" }, status: :bad_request
       end
 
-      if criteria_ids.blank?
-        return render json: { error: "At least one judging criterion is required" }, status: :bad_request
-      end
-
       # Verify team exists in TeamSummary
       team_summary = TeamSummary.find_by(team_name: team_name)
 
@@ -44,12 +40,35 @@ module Api
           error: "No successful team summary found for team: #{team_name}. Generate a team summary first."
         }, status: :bad_request
       end
-
-      # Validate criteria exist
-      criteria = JudgingCriterion.where(id: criteria_ids)
-
-      if criteria.empty?
-        return render json: { error: "No valid judging criteria found" }, status: :bad_request
+      
+      # If no criteria provided, use all existing criteria
+      if criteria_ids.blank?
+        criteria = JudgingCriterion.all
+        
+        if criteria.empty?
+          # Create default criteria if none exist
+          default_criteria = [
+            { name: "Innovation", description: "Originality and creativity of the solution", weight: 25 },
+            { name: "Technical Complexity", description: "Sophistication and difficulty of implementation", weight: 25 },
+            { name: "Impact", description: "Potential to solve real-world problems", weight: 25 },
+            { name: "Presentation", description: "Quality of documentation and demonstration", weight: 25 }
+          ]
+          
+          default_criteria.each do |criterion_data|
+            JudgingCriterion.create!(criterion_data)
+          end
+          
+          criteria = JudgingCriterion.all
+        end
+        
+        criteria_ids = criteria.pluck(:id)
+      else
+        # Validate provided criteria exist
+        criteria = JudgingCriterion.where(id: criteria_ids)
+        
+        if criteria.empty?
+          return render json: { error: "No valid judging criteria found" }, status: :bad_request
+        end
       end
 
       # Create or update the team evaluation record
