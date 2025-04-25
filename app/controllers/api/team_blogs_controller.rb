@@ -57,12 +57,27 @@ module Api
       team_blog = TeamBlog.find_or_initialize_by(team_name: team_name, hackathon_id: hackathon.id)
       team_blog.update!(status: "pending")
 
-      # Enqueue the job to generate the blog
-      GenerateTeamBlogJob.perform_later(team_name, hackathon.id)
-
-      render json: { 
-        message: "Team blog generation started for: #{team_name} in hackathon: #{hackathon.name}" 
-      }, status: :ok
+      # Run the job immediately in development mode, enqueue it in production
+      if Rails.env.development?
+        Rails.logger.info("DEVELOPMENT MODE: Running team blog generation synchronously")
+        GenerateTeamBlogJob.new.perform(team_name, hackathon.id)
+        
+        # Get the updated team blog
+        team_blog.reload
+        
+        render json: {
+          message: "Team blog generated for: #{team_name} in hackathon: #{hackathon.name}",
+          status: team_blog.status,
+          success: team_blog.status == "success"
+        }, status: :ok
+      else
+        # Enqueue the job in production
+        GenerateTeamBlogJob.perform_later(team_name, hackathon.id)
+        
+        render json: { 
+          message: "Team blog generation started for: #{team_name} in hackathon: #{hackathon.name}" 
+        }, status: :ok
+      end
     end
 
     def markdown

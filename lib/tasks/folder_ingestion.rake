@@ -3,6 +3,25 @@ namespace :folder_ingestion do
   task start: :environment do
     puts "Starting ingestion of local PDF files with folder names as team names..."
     
+    # Get the hackathon ID from environment variables
+    hackathon_id = ENV["HACKATHON_ID"]
+    hackathon = nil
+    
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
     if ENV["CLAUDE_API_KEY"].present?
       puts "Found Claude API key - will use Claude AI for summarization"
     else
@@ -45,7 +64,8 @@ namespace :folder_ingestion do
         # Create or update submission record
         submission = Submission.find_or_initialize_by(
           team_name: team_name,
-          filename: file[:name]
+          filename: file[:name],
+          hackathon_id: hackathon.id
         )
         
         # Use the actual file path for processing
@@ -55,7 +75,8 @@ namespace :folder_ingestion do
           file_type: "pdf",
           project: project,
           source_url: file_path.to_s,  # Use the actual file path
-          status: "processing"
+          status: "processing",
+          hackathon: hackathon
         )
         
         # Process the submission
@@ -113,14 +134,34 @@ namespace :folder_ingestion do
   
   desc "Generate summaries for teams created with folder_ingestion:start"
   task generate_summaries: :environment do
+    # Get the hackathon ID from environment variables
+    hackathon_id = ENV["HACKATHON_ID"]
+    hackathon = nil
+    
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
     # Find teams from recently created submissions without summaries
     team_names = Submission.where(status: 'success')
                           .where('created_at > ?', 24.hours.ago)
+                          .where(hackathon_id: hackathon.id)
                           .pluck(:team_name).uniq
     
     # Filter to only include teams that don't already have summaries
     teams_without_summaries = team_names.reject do |team_name|
-      TeamSummary.exists?(team_name: team_name)
+      TeamSummary.exists?(team_name: team_name, hackathon_id: hackathon.id)
     end
     
     puts "Found #{teams_without_summaries.count} teams without summaries from recent submissions"
@@ -129,13 +170,13 @@ namespace :folder_ingestion do
       puts "\nGenerating summary for team: #{team_name}"
       
       # Double check if a summary already exists (in case one was created in between)
-      if TeamSummary.exists?(team_name: team_name)
+      if TeamSummary.exists?(team_name: team_name, hackathon_id: hackathon.id)
         puts "  ⚠️ ERROR: Team summary was just created for #{team_name}. Skipping."
         next
       end
       
       # Find all successful submissions for the team
-      submissions = Submission.where(team_name: team_name, status: 'success').order(created_at: :desc)
+      submissions = Submission.where(team_name: team_name, status: 'success', hackathon_id: hackathon.id).order(created_at: :desc)
       
       if submissions.empty?
         puts "  No successful submissions found. Skipping."
@@ -163,35 +204,35 @@ namespace :folder_ingestion do
         domain_info = {}
         
         case team_name
-        when "TeamAlpha"
+        when "AIInnovators", "TeamAlpha"
           domain_info = {
             domain: "Healthcare",
             technologies: "Python, TensorFlow, PyTorch, React Native, MongoDB, AWS",
             features: "Voice-activated medication reminders, Natural language symptom analysis, Emergency services quick-dial",
             focus: "AI-powered voice assistant for healthcare"
           }
-        when "TeamBeta"
+        when "CityScapers", "TeamBeta"
           domain_info = {
             domain: "Smart City",
             technologies: "IoT, React, Node.js, MongoDB, Google Maps API",
             features: "Real-time traffic optimization, Urban mobility tracking, Public transport integration",
             focus: "Urban mobility solutions" 
           }
-        when "TeamDelta"
+        when "FinTechWhiz", "TeamDelta"
           domain_info = {
             domain: "Finance/Fintech",
             technologies: "Blockchain, React, Node.js, PostgreSQL",
             features: "Peer-to-peer lending, KYC verification, Financial education modules",
             focus: "Financial inclusion platform"
           }
-        when "TeamGamma"
+        when "GreenTech", "TeamGamma"
           domain_info = {
             domain: "Sustainability",
             technologies: "IoT, Blockchain, Machine Learning, React",
             features: "P2P energy trading, Grid optimization, Renewable energy tracking",
             focus: "Decentralized energy platform"
           }
-        when "TeamOmega"
+        when "LearnSphere", "TeamOmega"
           domain_info = {
             domain: "Education",
             technologies: "Node.js, Python, React Native, MongoDB, GraphQL",
@@ -254,7 +295,12 @@ namespace :folder_ingestion do
         SUMMARY
         
         # Save the team summary
-        TeamSummary.create!(team_name: team_name, content: team_summary, status: 'success')
+        TeamSummary.create!(
+          team_name: team_name, 
+          content: team_summary, 
+          status: 'success',
+          hackathon: hackathon
+        )
         
         puts "  ✓ Successfully generated and saved summary"
       rescue => e

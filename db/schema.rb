@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_24_103625) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_25_075132) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -86,7 +86,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_24_103625) do
     t.bigint "hackathon_id", null: false
     t.index ["hackathon_id", "team_name"], name: "index_team_evaluations_on_hackathon_id_and_team_name", unique: true
     t.index ["hackathon_id"], name: "index_team_evaluations_on_hackathon_id"
-    t.index ["team_name"], name: "index_team_evaluations_on_team_name", unique: true
   end
 
   create_table "team_summaries", force: :cascade do |t|

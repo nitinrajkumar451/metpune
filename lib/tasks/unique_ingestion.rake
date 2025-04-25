@@ -164,35 +164,35 @@ namespace :unique_ingestion do
         domain_info = {}
         
         case original_team_name
-        when "TeamAlpha"
+        when "AIInnovators", "TeamAlpha"
           domain_info = {
             domain: "Healthcare",
             technologies: "Python, TensorFlow, PyTorch, React Native, MongoDB, AWS",
             features: "Voice-activated medication reminders, Natural language symptom analysis, Emergency services quick-dial",
             focus: "AI-powered voice assistant for healthcare"
           }
-        when "TeamBeta"
+        when "CityScapers", "TeamBeta"
           domain_info = {
             domain: "Smart City",
             technologies: "IoT, React, Node.js, MongoDB, Google Maps API",
             features: "Real-time traffic optimization, Urban mobility tracking, Public transport integration",
             focus: "Urban mobility solutions" 
           }
-        when "TeamDelta"
+        when "FinTechWhiz", "TeamDelta"
           domain_info = {
             domain: "Finance/Fintech",
             technologies: "Blockchain, React, Node.js, PostgreSQL",
             features: "Peer-to-peer lending, KYC verification, Financial education modules",
             focus: "Financial inclusion platform"
           }
-        when "TeamGamma"
+        when "GreenTech", "TeamGamma"
           domain_info = {
             domain: "Sustainability",
             technologies: "IoT, Blockchain, Machine Learning, React",
             features: "P2P energy trading, Grid optimization, Renewable energy tracking",
             focus: "Decentralized energy platform"
           }
-        when "TeamOmega"
+        when "LearnSphere", "TeamOmega"
           domain_info = {
             domain: "Education",
             technologies: "Node.js, Python, React Native, MongoDB, GraphQL",

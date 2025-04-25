@@ -38,12 +38,27 @@ module Api
       insight = HackathonInsight.new(status: "pending", hackathon_id: hackathon.id)
       insight.save!
 
-      # Enqueue the job to generate the insights
-      GenerateHackathonInsightsJob.perform_later(hackathon.id)
-
-      render json: { 
-        message: "Hackathon insights generation started for hackathon: #{hackathon.name}" 
-      }, status: :ok
+      # Run the job immediately in development mode, enqueue it in production
+      if Rails.env.development?
+        Rails.logger.info("DEVELOPMENT MODE: Running hackathon insights generation synchronously")
+        GenerateHackathonInsightsJob.new.perform(hackathon.id)
+        
+        # Get the updated insight
+        insight.reload
+        
+        render json: {
+          message: "Hackathon insights generated for hackathon: #{hackathon.name}",
+          status: insight.status,
+          success: insight.status == "success"
+        }, status: :ok
+      else
+        # Enqueue the job in production
+        GenerateHackathonInsightsJob.perform_later(hackathon.id)
+        
+        render json: { 
+          message: "Hackathon insights generation started for hackathon: #{hackathon.name}" 
+        }, status: :ok
+      end
     end
 
     def markdown

@@ -57,12 +57,27 @@ module Api
       team_summary = TeamSummary.find_or_initialize_by(team_name: team_name, hackathon_id: hackathon.id)
       team_summary.update!(status: "pending")
 
-      # Enqueue the job to generate the summary
-      GenerateTeamSummaryJob.perform_later(team_name, hackathon.id)
-
-      render json: { 
-        message: "Team summary generation started for: #{team_name} in hackathon: #{hackathon.name}" 
-      }, status: :ok
+      # Run the job immediately in development mode, enqueue it in production
+      if Rails.env.development?
+        Rails.logger.info("DEVELOPMENT MODE: Running team summary generation synchronously")
+        GenerateTeamSummaryJob.new.perform(team_name, hackathon.id)
+        
+        # Get the updated team summary
+        team_summary.reload
+        
+        render json: {
+          message: "Team summary generated for: #{team_name} in hackathon: #{hackathon.name}",
+          status: team_summary.status,
+          success: team_summary.status == "success"
+        }, status: :ok
+      else
+        # Enqueue the job in production
+        GenerateTeamSummaryJob.perform_later(team_name, hackathon.id)
+        
+        render json: { 
+          message: "Team summary generation started for: #{team_name} in hackathon: #{hackathon.name}" 
+        }, status: :ok
+      end
     end
 
     private
