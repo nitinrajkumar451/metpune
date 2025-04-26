@@ -1,5 +1,9 @@
 class HackathonInsight < ApplicationRecord
+  # Associations
+  belongs_to :hackathon
+  
   # Validations
+  validates :hackathon_id, presence: true
   validates :status, inclusion: { in: %w[pending processing success failed] }
 
   # Scopes

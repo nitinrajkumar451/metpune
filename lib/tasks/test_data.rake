@@ -325,25 +325,43 @@ namespace :test_data do
   end
   
   desc "Generate team evaluation"
-  task :generate_team_evaluation, [:team_name] => :environment do |t, args|
+  task :generate_team_evaluation, [:team_name, :hackathon_id] => :environment do |t, args|
     team_name = args[:team_name]
+    hackathon_id = args[:hackathon_id]
     
     if team_name.blank?
       puts "Error: Team name is required."
-      puts "Usage: rake test_data:generate_team_evaluation[TeamName]"
+      puts "Usage: rake test_data:generate_team_evaluation[TeamName,HackathonId]"
       exit 1
     end
     
+    # Find hackathon
+    hackathon = nil
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
     # Check if team summary exists
-    team_summary = TeamSummary.find_by(team_name: team_name)
+    team_summary = TeamSummary.find_by(team_name: team_name, hackathon_id: hackathon.id)
     
     if team_summary.nil?
-      puts "Error: No summary found for team '#{team_name}'. Generate a team summary first."
+      puts "Error: No summary found for team '#{team_name}' in hackathon '#{hackathon.name}'. Generate a team summary first."
       exit 1
     end
     
     # Get the judging criteria
-    criteria = JudgingCriterion.all.map do |criterion|
+    criteria = JudgingCriterion.where(hackathon_id: hackathon.id).map do |criterion|
       {
         name: criterion.name,
         weight: criterion.weight,
@@ -376,26 +394,30 @@ namespace :test_data do
         # Generate a base score with some randomness depending on team name
         seed = team_name.sum / 100.0  # Use team name characters as seed
         base_score = case team_name
-                     when "TeamAlpha" then 4.6
-                     when "TeamBeta" then 4.3
-                     when "TeamGamma" then 4.5
-                     when "TeamDelta" then 4.1
-                     when "TeamOmega" then 4.7
+                     when "AIInnovators", "TeamAlpha" then 4.6
+                     when "CityScapers", "TeamBeta" then 4.3
+                     when "GreenTech", "TeamGamma" then 4.5
+                     when "FinTechWhiz", "TeamDelta" then 4.1
+                     when "LearnSphere", "TeamOmega" then 4.7
                      else 4.0
                      end
         
         # Add some per-criterion variation
         variation = case name
                     when "Innovation" 
-                      team_name.include?("Alpha") || team_name.include?("Gamma") ? 0.2 : -0.1
+                      team_name.include?("Alpha") || team_name.include?("Gamma") || 
+                      team_name.include?("AIInnovators") || team_name.include?("GreenTech") ? 0.2 : -0.1
                     when "Technical Execution"
-                      team_name.include?("Beta") || team_name.include?("Delta") ? 0.3 : 0.1
+                      team_name.include?("Beta") || team_name.include?("Delta") || 
+                      team_name.include?("CityScapers") || team_name.include?("FinTechWhiz") ? 0.3 : 0.1
                     when "Impact"
-                      team_name.include?("Omega") || team_name.include?("Alpha") ? 0.1 : -0.2
+                      team_name.include?("Omega") || team_name.include?("Alpha") || 
+                      team_name.include?("LearnSphere") || team_name.include?("AIInnovators") ? 0.1 : -0.2
                     when "Presentation Quality"
-                      team_name.include?("Gamma") ? 0.4 : 0.0
+                      team_name.include?("Gamma") || team_name.include?("GreenTech") ? 0.4 : 0.0
                     when "Completeness"
-                      team_name.include?("Beta") || team_name.include?("Omega") ? 0.2 : -0.1
+                      team_name.include?("Beta") || team_name.include?("Omega") || 
+                      team_name.include?("CityScapers") || team_name.include?("LearnSphere") ? 0.2 : -0.1
                     else 0.0
                     end
         
@@ -417,24 +439,24 @@ namespace :test_data do
         # Add specific details based on criterion
         case name
         when "Innovation"
-          if team_name == "TeamAlpha"
+          if team_name == "TeamAlpha" || team_name == "AIInnovators"
             feedback += " The voice assistant for healthcare shows novel approaches to medical support systems."
-          elsif team_name == "TeamBeta"
+          elsif team_name == "TeamBeta" || team_name == "CityScapers"
             feedback += " The urban mobility solution introduces creative approaches to transportation optimization."
-          elsif team_name == "TeamGamma"
+          elsif team_name == "TeamGamma" || team_name == "GreenTech"
             feedback += " The decentralized energy platform demonstrates innovative use of blockchain technology."
-          elsif team_name == "TeamDelta"
+          elsif team_name == "TeamDelta" || team_name == "FinTechWhiz"
             feedback += " The financial inclusion platform shows thoughtful approaches to accessibility challenges."
-          elsif team_name == "TeamOmega"
+          elsif team_name == "TeamOmega" || team_name == "LearnSphere"
             feedback += " The adaptive learning system presents novel approaches to personalized education."
           end
         when "Technical Execution"
           technologies = case team_name
-                         when "TeamAlpha" then "Python, TensorFlow, PyTorch, React Native"
-                         when "TeamBeta" then "IoT, React, Node.js, MongoDB"
-                         when "TeamGamma" then "Blockchain, IoT, Machine Learning"
-                         when "TeamDelta" then "Blockchain, React, Node.js, PostgreSQL"
-                         when "TeamOmega" then "Node.js, Python, React Native, MongoDB"
+                         when "TeamAlpha", "AIInnovators" then "Python, TensorFlow, PyTorch, React Native"
+                         when "TeamBeta", "CityScapers" then "IoT, React, Node.js, MongoDB"
+                         when "TeamGamma", "GreenTech" then "Blockchain, IoT, Machine Learning"
+                         when "TeamDelta", "FinTechWhiz" then "Blockchain, React, Node.js, PostgreSQL"
+                         when "TeamOmega", "LearnSphere" then "Node.js, Python, React Native, MongoDB"
                          else "modern web technologies"
                          end
           feedback += " The technical implementation using #{technologies} shows #{score >= 4.3 ? 'excellent' : 'good'} engineering practices."
@@ -454,16 +476,16 @@ namespace :test_data do
       
       # Overall comments
       comments = case team_name
-                 when "TeamAlpha"
-                   "Team Alpha's healthcare voice assistant demonstrates exceptional innovation and technical implementation. The solution addresses critical needs in patient care with a well-designed voice interface and robust backend services. Future iterations could focus on expanding language support and healthcare provider integrations."
-                 when "TeamBeta"
-                   "Team Beta's urban mobility platform shows excellent technical execution and real-world impact potential. The integration of IoT devices with transit data creates a compelling solution for smart city applications. Additional user testing in diverse urban environments would strengthen the solution further."
-                 when "TeamGamma"
-                   "Team Gamma's decentralized energy platform demonstrates innovative use of blockchain technology with strong technical implementation. The peer-to-peer trading system addresses key challenges in renewable energy distribution. Further development of user onboarding processes would enhance adoption potential."
-                 when "TeamDelta"
-                   "Team Delta's financial inclusion platform shows strong technical execution with meaningful societal impact. The combination of secure transactions and educational modules creates a comprehensive solution. Enhancing the mobile experience and adding offline capabilities could further increase accessibility."
-                 when "TeamOmega"
-                   "Team Omega's adaptive learning system demonstrates exceptional technical sophistication and innovative approaches to personalized education. The cognitive profiling and knowledge mapping show deep domain understanding. Expanding content areas and adding instructor dashboards would create additional value."
+                 when "TeamAlpha", "AIInnovators"
+                   "#{team_name}'s healthcare voice assistant demonstrates exceptional innovation and technical implementation. The solution addresses critical needs in patient care with a well-designed voice interface and robust backend services. Future iterations could focus on expanding language support and healthcare provider integrations."
+                 when "TeamBeta", "CityScapers"
+                   "#{team_name}'s urban mobility platform shows excellent technical execution and real-world impact potential. The integration of IoT devices with transit data creates a compelling solution for smart city applications. Additional user testing in diverse urban environments would strengthen the solution further."
+                 when "TeamGamma", "GreenTech"
+                   "#{team_name}'s decentralized energy platform demonstrates innovative use of blockchain technology with strong technical implementation. The peer-to-peer trading system addresses key challenges in renewable energy distribution. Further development of user onboarding processes would enhance adoption potential."
+                 when "TeamDelta", "FinTechWhiz"
+                   "#{team_name}'s financial inclusion platform shows strong technical execution with meaningful societal impact. The combination of secure transactions and educational modules creates a comprehensive solution. Enhancing the mobile experience and adding offline capabilities could further increase accessibility."
+                 when "TeamOmega", "LearnSphere"
+                   "#{team_name}'s adaptive learning system demonstrates exceptional technical sophistication and innovative approaches to personalized education. The cognitive profiling and knowledge mapping show deep domain understanding. Expanding content areas and adding instructor dashboards would create additional value."
                  else
                    "The team delivered a solid project with good technical execution and innovation. There are opportunities to enhance user experience and expand feature coverage in future iterations."
                  end
@@ -476,11 +498,12 @@ namespace :test_data do
       }.to_json
       
       # Save the evaluation
-      TeamEvaluation.find_or_create_by(team_name: team_name).update(
+      TeamEvaluation.find_or_create_by(team_name: team_name, hackathon_id: hackathon.id).update(
         scores: scores,
         total_score: average_score,
         comments: comments,
-        status: 'success'
+        status: 'success',
+        hackathon: hackathon
       )
       
       puts "\n===== EVALUATION FOR #{team_name.upcase} ====="
@@ -500,15 +523,34 @@ namespace :test_data do
   end
   
   desc "Generate evaluations for all teams"
-  task :generate_all_team_evaluations => :environment do
-    # Get all teams with summaries
-    teams = TeamSummary.all.pluck(:team_name)
+  task :generate_all_team_evaluations, [:hackathon_id] => :environment do |t, args|
+    hackathon_id = args[:hackathon_id]
     
-    puts "Found #{teams.count} teams with summaries"
+    # Find hackathon
+    hackathon = nil
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
+    # Get all teams with summaries for this hackathon
+    teams = TeamSummary.where(hackathon_id: hackathon.id).pluck(:team_name)
+    
+    puts "Found #{teams.count} teams with summaries for hackathon '#{hackathon.name}'"
     
     teams.each do |team_name|
       puts "\nProcessing team: #{team_name}"
-      Rake::Task["test_data:generate_team_evaluation"].invoke(team_name)
+      Rake::Task["test_data:generate_team_evaluation"].invoke(team_name, hackathon.id)
       # Reset the task to be able to call it again
       Rake::Task["test_data:generate_team_evaluation"].reenable
     end
@@ -516,17 +558,77 @@ namespace :test_data do
     puts "\nAll team evaluations generated successfully"
   end
   
+  desc "Create judging criteria for hackathon"
+  task :create_judging_criteria, [:hackathon_id] => :environment do |t, args|
+    hackathon_id = args[:hackathon_id]
+    
+    # Find hackathon
+    hackathon = nil
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
+    criteria = [
+      { name: "Innovation", weight: 0.25, description: "Uniqueness and creativity of the solution" },
+      { name: "Technical Execution", weight: 0.25, description: "Quality of implementation and architecture" },
+      { name: "Impact", weight: 0.2, description: "Potential social or business impact" },
+      { name: "Presentation Quality", weight: 0.15, description: "Clarity and effectiveness of presentation" },
+      { name: "Completeness", weight: 0.15, description: "How complete and polished is the solution" }
+    ]
+    
+    criteria.each do |c|
+      JudgingCriterion.find_or_create_by(name: c[:name], hackathon_id: hackathon.id).update(
+        weight: c[:weight],
+        description: c[:description],
+        hackathon: hackathon
+      )
+    end
+    
+    puts "Created #{criteria.count} judging criteria for hackathon: #{hackathon.name}"
+  end
+
   desc "Show hackathon leaderboard"
-  task :show_leaderboard => :environment do
-    evaluations = TeamEvaluation.order(total_score: :desc)
+  task :show_leaderboard, [:hackathon_id] => :environment do |t, args|
+    hackathon_id = args[:hackathon_id]
+    
+    # Find hackathon
+    hackathon = nil
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
+    # Filter evaluations by hackathon
+    evaluations = TeamEvaluation.where(hackathon_id: hackathon.id).order(total_score: :desc)
     
     if evaluations.empty?
-      puts "No team evaluations found. Generate team evaluations first."
+      puts "No team evaluations found for hackathon: #{hackathon.name}. Generate team evaluations first."
       exit 0
     end
     
-    puts "🏆 METATHON 2025 LEADERBOARD 🏆"
-    puts "================================"
+    puts "🏆 #{hackathon.name.upcase} LEADERBOARD 🏆"
+    puts "=" * (hackathon.name.length + 24)
     puts ""
     
     # Display the leaderboard
@@ -554,6 +656,180 @@ namespace :test_data do
     
     puts "\n================================"
     puts "Generated on #{Time.now.strftime('%B %d, %Y')}"
+  end
+  
+  desc "Generate team blog"
+  task :generate_team_blog, [:team_name, :hackathon_id] => :environment do |t, args|
+    team_name = args[:team_name]
+    hackathon_id = args[:hackathon_id]
+    
+    if team_name.blank?
+      puts "Error: Team name is required."
+      puts "Usage: rake test_data:generate_team_blog[TeamName,HackathonId]"
+      exit 1
+    end
+    
+    # Find hackathon
+    hackathon = nil
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
+    # Check if team summary exists
+    team_summary = TeamSummary.find_by(team_name: team_name, hackathon_id: hackathon.id)
+    
+    if team_summary.nil?
+      puts "Error: No summary found for team '#{team_name}' in hackathon '#{hackathon.name}'. Generate a team summary first."
+      exit 1
+    end
+    
+    # Get team evaluation if available
+    team_eval = TeamEvaluation.find_by(team_name: team_name, hackathon_id: hackathon.id)
+    
+    puts "Generating blog post for #{team_name}..."
+    
+    # Create a structured blog based on team information
+    blog_content = <<~BLOG
+      # #{team_name} Team Blog: Our Hackathon Journey
+
+      ## Who We Are
+
+      We are **#{team_name}**, a passionate team of developers, designers, and problem solvers participating in the **#{hackathon.name}** hackathon. Our diverse backgrounds in software engineering, UX design, and domain expertise have allowed us to approach challenges from multiple perspectives.
+
+      ## Our Project
+
+      #{case team_name
+        when "AIInnovators", "TeamAlpha"
+          "Our project focuses on creating an AI-powered voice assistant for healthcare that helps patients manage their medications, recognize symptoms, and access emergency services when needed. We identified this problem after realizing how challenging medication management can be, especially for elderly patients or those with complex treatment regimens."
+        when "CityScapers", "TeamBeta"
+          "We've developed an urban mobility platform that optimizes transportation in smart cities by leveraging IoT devices and real-time data analysis. Our solution addresses the growing congestion problems in urban centers while promoting sustainable transportation options and improving the overall quality of life for city dwellers."
+        when "GreenTech", "TeamGamma"
+          "Our team has built a decentralized energy platform that facilitates peer-to-peer energy trading using blockchain technology. This solution enables homeowners with solar panels or other renewable energy sources to sell excess energy directly to neighbors, creating a more efficient and sustainable local energy ecosystem."
+        when "FinTechWhiz", "TeamDelta"
+          "We've created a financial inclusion platform that combines secure transactions with educational modules to serve underbanked populations. Our solution addresses key barriers to financial services access while simultaneously building financial literacy through intuitive, accessible tools and resources."
+        when "LearnSphere", "TeamOmega"
+          "Our project is an adaptive learning system that personalizes educational content based on individual cognitive profiles and learning patterns. By mapping knowledge states and creating custom learning paths, we're addressing the limitations of one-size-fits-all education and enabling more effective learning outcomes."
+        else
+          "Our project addresses key challenges in the technology space, focusing on creating innovative solutions that leverage modern web technologies and cloud computing. We identified several pain points in current systems and designed our application to streamline workflows and enhance user experiences."
+        end}
+
+      ## Technical Implementation
+
+      Our solution is built using #{case team_name
+        when "AIInnovators", "TeamAlpha" then "Python and TensorFlow for the AI backend, with PyTorch handling natural language processing. The frontend is developed in React Native to ensure cross-platform compatibility, while MongoDB provides flexible data storage and AWS hosts our cloud infrastructure."
+        when "CityScapers", "TeamBeta" then "IoT sensors that communicate with our React and Node.js application stack. We used MongoDB for data persistence and integrated with Google Maps API for spatial visualization and routing optimization."
+        when "GreenTech", "TeamGamma" then "blockchain technology for secure transactions, IoT devices for energy monitoring, and machine learning algorithms for usage prediction and optimization. Our React frontend provides an intuitive dashboard for users to monitor and manage their energy trading."
+        when "FinTechWhiz", "TeamDelta" then "a secure blockchain infrastructure for transactions, with React and Node.js powering our web application. PostgreSQL ensures data integrity and reliability for financial records while our API allows for future integration with other financial services."
+        when "LearnSphere", "TeamOmega" then "Node.js and Python for our backend services, React Native for cross-platform mobile support, MongoDB for flexible data storage, and GraphQL for efficient API queries. Our machine learning models continually refine the learning experience based on user interactions."
+        else "modern web technologies including cloud-native services, containerization for scalability, and mobile-responsive interfaces to ensure broad accessibility."
+        end}
+
+      ## Challenges We Overcame
+
+      Throughout the hackathon, we faced several significant challenges:
+
+      1. **Integration Complexity** - Connecting multiple technologies and services required careful architecture design and interface planning.
+      
+      2. **Performance Optimization** - Ensuring real-time responsiveness while processing complex operations needed thoughtful algorithm selection and query optimization.
+      
+      3. **User Experience Design** - Creating intuitive interfaces for complex functionality demanded iterative design and frequent user feedback loops.
+      
+      4. **Data Security** - Implementing robust protection for sensitive information while maintaining user convenience required balancing security measures with usability.
+
+      Despite these challenges, our team persevered by leveraging our diverse skills and maintaining clear communication throughout the development process.
+
+      ## Key Learnings
+
+      This hackathon taught us valuable lessons about:
+
+      - The importance of rapid prototyping to validate assumptions early
+      - How cross-functional collaboration leads to more comprehensive solutions
+      - The value of user feedback in refining features and interfaces
+      - Techniques for effective time management under tight deadlines
+      - Strategies for solving complex problems through iterative approaches
+
+      ## Future Plans
+
+      #{team_eval ? "Having received a score of #{team_eval.total_score}/5.0 in the hackathon evaluation, " : ""}We're excited about the potential of our project and plan to continue development by:
+
+      - Expanding feature coverage to address additional user needs
+      - Conducting more extensive user testing with diverse user groups
+      - Optimizing performance for larger scale deployment
+      - Exploring partnership opportunities with #{case team_name
+        when "AIInnovators", "TeamAlpha" then "healthcare providers and patient advocacy groups"
+        when "CityScapers", "TeamBeta" then "city transportation departments and urban planning agencies"
+        when "GreenTech", "TeamGamma" then "utility companies and environmental organizations"
+        when "FinTechWhiz", "TeamDelta" then "financial institutions and financial literacy nonprofits"
+        when "LearnSphere", "TeamOmega" then "educational institutions and online learning platforms"
+        else "industry stakeholders and potential users"
+        end}
+      - Refining our business model for long-term sustainability
+
+      ## Acknowledgments
+
+      We're grateful to the organizers of #{hackathon.name} for this opportunity, to the mentors who provided guidance, and to all the other teams for their inspiration and camaraderie. This hackathon experience has been invaluable for our growth as developers and innovators.
+
+      *Posted on #{Time.now.strftime('%B %d, %Y')}*
+    BLOG
+    
+    # Create or update team blog
+    TeamBlog.find_or_create_by(team_name: team_name, hackathon_id: hackathon.id).update(
+      content: blog_content,
+      status: 'success',
+      hackathon: hackathon
+    )
+    
+    puts "Blog for #{team_name} generated successfully!"
+    puts "\n===== BLOG PREVIEW ====="
+    puts blog_content.split("\n").first(10).join("\n") + "\n..."
+    puts "===== END OF PREVIEW ====="
+  end
+  
+  desc "Generate blogs for all teams"
+  task :generate_all_team_blogs, [:hackathon_id] => :environment do |t, args|
+    hackathon_id = args[:hackathon_id]
+    
+    # Find hackathon
+    hackathon = nil
+    if hackathon_id.present?
+      hackathon = Hackathon.find_by(id: hackathon_id)
+      if hackathon
+        puts "Using hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+      else
+        puts "⚠️ WARNING: Hackathon with ID #{hackathon_id} not found. Using default hackathon."
+      end
+    end
+    
+    # Use default hackathon if none specified or not found
+    if hackathon.nil?
+      hackathon = Hackathon.default
+      puts "Using default hackathon: #{hackathon.name} (ID: #{hackathon.id})"
+    end
+    
+    # Get all teams with summaries for this hackathon
+    teams = TeamSummary.where(hackathon_id: hackathon.id).pluck(:team_name)
+    
+    puts "Found #{teams.count} teams with summaries for hackathon '#{hackathon.name}'"
+    
+    teams.each do |team_name|
+      puts "\nProcessing team: #{team_name}"
+      Rake::Task["test_data:generate_team_blog"].invoke(team_name, hackathon.id)
+      # Reset the task to be able to call it again
+      Rake::Task["test_data:generate_team_blog"].reenable
+    end
+    
+    puts "\nAll team blogs generated successfully"
   end
   
   desc "Generate hackathon insights summary"

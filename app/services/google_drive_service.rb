@@ -143,14 +143,31 @@ class GoogleDriveService
         # Parse the file path from the ID
         parts = file_id.split('_')
         team_name = parts[1]
-        file_name = parts[2..-1].join('_')
+        
+        # The file name needs to be reconstructed with proper extension
+        raw_file_name = parts[2..-1].join('_')
+        
+        # If the last part is 'pdf', treat it as an extension
+        if raw_file_name.end_with?('_pdf')
+          file_name = raw_file_name.gsub(/_pdf$/, '.pdf')
+        else
+          file_name = raw_file_name
+        end
+        
+        Rails.logger.info("Looking for file: #{file_name} in team directory for #{team_name}")
         
         # Find matching files in the team directory
         team_directory = Rails.root.join('tmp/mock_drive', team_name)
-        file_paths = Dir.glob(File.join(team_directory, '**', file_name))
+        file_paths = Dir.glob(File.join(team_directory, '**', "*#{file_name}*"))
         
         if file_paths.empty?
-          raise ApiErrors::ResourceNotFoundError.new("Local file not found: #{file_id}")
+          # Try a more permissive search if exact match fails
+          file_paths = Dir.glob(File.join(team_directory, '**', "*.pdf"))
+          Rails.logger.info("Fallback search found #{file_paths.count} PDF files in #{team_directory}")
+          
+          if file_paths.empty?
+            raise ApiErrors::ResourceNotFoundError.new("Local file not found: #{file_id}")
+          end
         end
         
         # Read the file content

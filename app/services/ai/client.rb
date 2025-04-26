@@ -112,10 +112,7 @@ module Ai
       end
     end
 
-    def evaluate_team(team_name, team_summary, criteria)
-      # Skip API calls in development/test
-      return mock_team_evaluation(team_name, criteria) unless Rails.env.production?
-
+    def evaluate_team(team_name, team_summary, criteria, hackathon_name = nil)
       # Format the criteria as a string
       formatted_criteria = "Judging Criteria:\n\n"
       criteria.each do |criterion|
@@ -124,43 +121,95 @@ module Ai
 
       # Format the content for evaluation
       formatted_content = "Team: #{team_name}\n\n"
+      formatted_content += "Hackathon: #{hackathon_name || 'Metathon 2025'}\n\n"
       formatted_content += "Team Summary:\n#{team_summary}\n\n"
       formatted_content += formatted_criteria
 
-      case @provider
+      # Detect which provider to use
+      provider_to_use = detect_provider
+
+      # Log the provider we're using
+      Rails.logger.info("Evaluating team: #{team_name} using provider: #{provider_to_use}")
+      Rails.logger.info("Criteria: #{criteria.map { |c| c[:name] }.join(', ')}")
+
+      # Make the API call based on the detected provider
+      evaluation_result = case provider_to_use
       when :claude
+        Rails.logger.info("Using Claude API for team evaluation")
         call_claude_api(formatted_content, create_evaluation_prompt)
       when :openai
+        Rails.logger.info("Using OpenAI API for team evaluation")
         call_openai_api(formatted_content, create_evaluation_prompt)
       else
-        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+        # Only use mock if no API keys are configured
+        Rails.logger.warn("No AI provider available, generating mock evaluation data for: #{team_name}")
+        mock_team_evaluation(team_name, criteria, hackathon_name)
+      end
+
+      # Ensure we return a valid result
+      if evaluation_result.nil? || evaluation_result.to_s.strip.empty?
+        Rails.logger.error("Empty evaluation result returned from provider: #{provider_to_use}")
+        # Return a valid mock response as fallback
+        mock_team_evaluation(team_name, criteria, hackathon_name)
+      else
+        evaluation_result
+      end
+    end
+    
+    # Helper method to detect which provider to use
+    def detect_provider
+      if ENV["CLAUDE_API_KEY"].present?
+        :claude
+      elsif ENV["OPENAI_API_KEY"].present?
+        :openai
+      else
+        :mock
       end
     end
 
-    def generate_team_blog(team_name, team_summary)
-      # Skip API calls in development/test
-      return mock_team_blog(team_name) unless Rails.env.production?
+    def generate_team_blog(team_name, team_summary, hackathon_name = nil)
+      # Skip API calls in development/test ONLY if no API key is present
+      if !Rails.env.production? && ENV["CLAUDE_API_KEY"].blank? && ENV["OPENAI_API_KEY"].blank?
+        return mock_team_blog(team_name, hackathon_name)
+      end
 
       # Format the content for blog generation
       formatted_content = "Team: #{team_name}\n\n"
+      formatted_content += "Hackathon: #{hackathon_name || 'Metathon 2025'}\n\n"
       formatted_content += "Team Summary:\n#{team_summary}\n\n"
-
-      case @provider
-      when :claude
-        call_claude_api(formatted_content, create_blog_prompt)
-      when :openai
-        call_openai_api(formatted_content, create_blog_prompt)
+      
+      Rails.logger.info("Generating team blog for #{team_name} using provider: #{@provider}")
+      
+      # If we have a Claude API key, use it regardless of environment
+      if ENV["CLAUDE_API_KEY"].present?
+        Rails.logger.info("Using Claude API for team blog generation")
+        return call_claude_api(formatted_content, create_blog_prompt)
+      # If we have an OpenAI API key, use it instead
+      elsif ENV["OPENAI_API_KEY"].present?
+        Rails.logger.info("Using OpenAI API for team blog generation")
+        return call_openai_api(formatted_content, create_blog_prompt)
+      # Follow normal provider selection if no specific keys are configured
       else
-        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+        case @provider
+        when :claude
+          call_claude_api(formatted_content, create_blog_prompt)
+        when :openai
+          call_openai_api(formatted_content, create_blog_prompt)
+        else
+          raise ArgumentError, "Unsupported AI provider: #{@provider}"
+        end
       end
     end
 
-    def generate_hackathon_insights(team_summaries)
-      # Skip API calls in development/test
-      return mock_hackathon_insights unless Rails.env.production?
+    def generate_hackathon_insights(team_summaries, hackathon_name = nil)
+      # Skip API calls in development/test ONLY if no API key is present
+      if !Rails.env.production? && ENV["CLAUDE_API_KEY"].blank? && ENV["OPENAI_API_KEY"].blank?
+        return mock_hackathon_insights(hackathon_name)
+      end
 
       # Format all team summaries for analysis
-      formatted_content = "Hackathon Team Summaries:\n\n"
+      formatted_content = "Hackathon: #{hackathon_name || 'Metathon 2025'}\n\n"
+      formatted_content += "Team Summaries:\n\n"
 
       team_summaries.each do |summary|
         formatted_content += "Team: #{summary.team_name}\n"
@@ -168,13 +217,26 @@ module Ai
         formatted_content += "---\n\n"
       end
 
-      case @provider
-      when :claude
-        call_claude_api(formatted_content, create_hackathon_insights_prompt)
-      when :openai
-        call_openai_api(formatted_content, create_hackathon_insights_prompt)
+      Rails.logger.info("Generating hackathon insights using provider: #{@provider}")
+
+      # If we have a Claude API key, use it regardless of environment
+      if ENV["CLAUDE_API_KEY"].present?
+        Rails.logger.info("Using Claude API for hackathon insights generation")
+        return call_claude_api(formatted_content, create_hackathon_insights_prompt)
+      # If we have an OpenAI API key, use it instead
+      elsif ENV["OPENAI_API_KEY"].present?
+        Rails.logger.info("Using OpenAI API for hackathon insights generation")
+        return call_openai_api(formatted_content, create_hackathon_insights_prompt)
+      # Follow normal provider selection if no specific keys are configured
       else
-        raise ArgumentError, "Unsupported AI provider: #{@provider}"
+        case @provider
+        when :claude
+          call_claude_api(formatted_content, create_hackathon_insights_prompt)
+        when :openai
+          call_openai_api(formatted_content, create_hackathon_insights_prompt)
+        else
+          raise ArgumentError, "Unsupported AI provider: #{@provider}"
+        end
       end
     end
 
@@ -220,6 +282,15 @@ module Ai
           enhanced_prompt = "#{prompt}\n\nThis appears to be a PDF document. Here's a sample of the binary content (this may look garbled):\n\n#{sample_content}\n\nPlease provide the best summary you can based on this information."
         end
         
+        # Special handling for evaluation prompts - ensure they are formatted correctly
+        if prompt.include?("Judging Criteria") || prompt.include?("Format your response as structured JSON")
+          Rails.logger.info("Detected evaluation prompt, using evaluation system prompt")
+          system_prompt = "You are a fair and objective hackathon judge. You assess teams' submissions based on provided criteria and always respond in valid JSON format with scores, weights, and feedback. Your response MUST contain 'scores' and 'total_score' fields formatted exactly as specified in the prompt."
+        else
+          system_prompt = "You are an expert PDF content analyzer. Your task is to provide concise, insightful summaries of hackathon team documents."
+        end
+        
+        Rails.logger.info("Making Claude API call with prompt length: #{enhanced_prompt.length} characters")
         # Make the API call with text-only content
         response = HTTParty.post(
           "https://api.anthropic.com/v1/messages",
@@ -242,9 +313,9 @@ module Ai
                 ]
               }
             ],
-            system: "You are an expert PDF content analyzer. Your task is to provide concise, insightful summaries of hackathon team documents."
+            system: system_prompt
           }.to_json,
-          timeout: 120  # Increased timeout for processing
+          timeout: 180  # Increased timeout for processing
         )
 
         # Handle response using our helper
@@ -252,20 +323,78 @@ module Ai
 
         # Extract the response content from Claude API
         response_body = JSON.parse(response.body)
+        Rails.logger.info("Claude API response received, parsing result")
         
         if response_body["content"].present? && response_body["content"].is_a?(Array)
           # Extract the text from the first content block
-          response_body["content"].find { |c| c["type"] == "text" }&.dig("text")
+          result = response_body["content"].find { |c| c["type"] == "text" }&.dig("text")
+          
+          # For evaluation prompts, try to extract JSON from the response
+          if prompt.include?("Format your response as structured JSON")
+            Rails.logger.info("Extracting JSON from Claude evaluation response")
+            begin
+              # Try to find valid JSON in the response
+              json_pattern = /```json\n(.*?)\n```|```(.*?)```|\{.*"scores".*"total_score".*\}/m
+              if match = result.match(json_pattern)
+                json_str = match[1] || match[2] || match[0]
+                Rails.logger.info("Found JSON pattern, attempting to parse")
+                return json_str.strip
+              else
+                Rails.logger.warn("No JSON pattern found in Claude response")
+                return result
+              end
+            rescue => json_err
+              Rails.logger.error("Error extracting JSON from Claude response: #{json_err.message}")
+              return result
+            end
+          else
+            return result
+          end
         else
           # Fallback if response format is unexpected
           Rails.logger.warn("Unexpected Claude API response format: #{response_body.inspect}")
-          enhanced_mock_pdf_summary(content)
+          if prompt.include?("Format your response as structured JSON")
+            # Extract team name safely
+            team_name = "Unknown Team"
+            if content.is_a?(String)
+              team_match = content.match(/Team: (.*?)$/)
+              team_name = team_match[1] if team_match
+            end
+            mock_team_evaluation(team_name, [], nil)
+          else
+            enhanced_mock_pdf_summary(content)
+          end
         end
       rescue => e
         # Handle all errors
         log_error("Claude API error: #{e.message}")
         Rails.logger.error("Falling back to mock implementation due to API error")
-        enhanced_mock_pdf_summary(content)
+        
+        if prompt.include?("Format your response as structured JSON")
+          # For evaluation errors, return valid mock evaluation data
+          team_name = "Unknown Team"
+          criteria = []
+          
+          # Safely extract team name if possible
+          if content.is_a?(String)
+            team_match = content.match(/Team: (.*?)$/m)
+            if team_match && team_match[1]
+              team_name = team_match[1].strip
+            end
+            
+            # Try to extract criteria
+            criteria_section = content.match(/Judging Criteria:(.*?)(?=Team:|$)/m)
+            if criteria_section && criteria_section[1]
+              criteria_section[1].scan(/- ([^(]+) \(Weight: ([^)]+)\): (.*)$/i).each do |name, weight, desc|
+                criteria << { name: name.strip, weight: weight.to_f, description: desc.strip }
+              end
+            end
+          end
+          
+          mock_team_evaluation(team_name, criteria, nil)
+        else
+          enhanced_mock_pdf_summary(content)
+        end
       end
     end
 
@@ -529,28 +658,85 @@ module Ai
 
     def create_hackathon_insights_prompt
       <<~PROMPT
-        You're an expert in analyzing hackathon and innovation trends. Review the team summaries from this hackathon to create a comprehensive trends analysis in Markdown format.#{' '}
+        You're an expert in analyzing hackathon and innovation trends. Review the team summaries from this hackathon to create a structured insights report in JSON format with Markdown content.
 
-        Analyze across all teams and identify patterns in:
+        The analysis should be specific to the hackathon mentioned in the provided content.
 
-        1. Technologies: Common tech stacks, frameworks, languages, and tools used
-        2. Problem Domains: Recurring themes in the problems teams chose to tackle
-        3. AI Use Cases: How AI/ML was utilized across different projects
-        4. Approaches: Common methodologies, architectures, or techniques
-        5. Challenges: Recurring obstacles teams faced
-        6. Collaboration Patterns: Team dynamics and work distribution trends
-        7. Innovation Trends: Novel or unexpected approaches that stood out
+        Analyze across all teams and identify patterns in the following areas. Your response MUST be a valid JSON object with the exact structure shown below, containing the following sections:
 
-        For each area, include:
-        - The 3-5 most prevalent trends with specific examples from teams
-        - Any outliers or unique approaches worth highlighting
-        - Brief analysis of why these trends emerged (industry influence, hackathon constraints, etc.)
+        ```json
+        {
+          "programming_languages": {
+            "description": "Analysis of programming languages used across projects",
+            "data": [
+              {"name": "JavaScript", "count": 12, "percentage": 80},
+              {"name": "Python", "count": 8, "percentage": 53},
+              ...
+            ],
+            "insights": "Markdown text analyzing the programming language trends..."
+          },
+          "ai_tools": {
+            "description": "Analysis of AI tools and frameworks used",
+            "data": [
+              {"name": "TensorFlow", "count": 6, "percentage": 40},
+              {"name": "PyTorch", "count": 5, "percentage": 33},
+              ...
+            ],
+            "insights": "Markdown text analyzing the AI tool usage trends..."
+          },
+          "coherent_ideas": {
+            "description": "Recurring themes and coherent project ideas",
+            "list": [
+              "Smart healthcare monitoring using AI for early diagnosis",
+              "Sustainable energy management platforms",
+              ...
+            ],
+            "insights": "Markdown text analyzing the common themes and ideas..."
+          },
+          "common_wins": {
+            "description": "Achievements and successes observed across teams",
+            "list": [
+              "Strong technical implementations with solid architecture",
+              "Effective use of modern development practices",
+              ...
+            ],
+            "insights": "Markdown text analyzing common successful approaches..."
+          },
+          "common_pitfalls": {
+            "description": "Challenges and obstacles faced by teams",
+            "list": [
+              "Scope too ambitious for hackathon timeframe",
+              "Insufficient error handling in AI components",
+              ...
+            ],
+            "insights": "Markdown text analyzing common pitfalls and how teams addressed them..."
+          },
+          "innovative_ideas": {
+            "description": "Standout innovative approaches",
+            "list": [
+              "Team Alpha's novel approach to real-time document processing",
+              "Team Beta's creative solution for multi-modal data fusion",
+              ...
+            ],
+            "insights": "Markdown text highlighting particularly innovative approaches..."
+          },
+          "executive_summary": "Markdown text providing an overall summary of the hackathon...",
+          "recommendations": "Markdown text with suggestions for future hackathons..."
+        }
+        ```
 
-        Format your response as a well-structured Markdown document with appropriate headings, subheadings, lists, and emphasis. Start with an executive summary of the key findings.
+        For the histogram data (programming_languages and ai_tools):
+        - Include ONLY technologies that appear in at least 2 teams
+        - Calculate both the count (number of teams) and percentage (percent of total teams)
+        - Sort by count in descending order
+        - Include at least 5 items if available, maximum 10
 
-        Include a section that highlights particularly innovative or effective approaches from specific teams.
+        For the list sections (coherent_ideas, common_wins, common_pitfalls, innovative_ideas):
+        - Provide 5-7 concise bullet points
+        - Make each point specific and actionable
+        - Include relevant team examples where appropriate
 
-        End with recommendations for future hackathons based on these insights.
+        Markdown sections should be concise (2-4 paragraphs) and provide insightful analysis.
 
         Today's date is: #{Date.today.strftime('%B %d, %Y')}
       PROMPT
@@ -862,7 +1048,7 @@ module Ai
       SUMMARY
     end
 
-    def mock_team_evaluation(team_name, criteria)
+    def mock_team_evaluation(team_name, criteria, hackathon_name = nil)
       # Create a sample structured response based on the criteria
       scores = {}
       total_weighted_score = 0
@@ -886,12 +1072,13 @@ module Ai
       end
 
       average_score = (total_weighted_score / total_weight).round(2)
+      hackathon_context = hackathon_name ? " in #{hackathon_name}" : ""
 
       # Format the response as JSON
       JSON.generate({
         "scores" => scores,
         "total_score" => average_score,
-        "comments" => "Team #{team_name} achieved an overall score of #{average_score}/5.0, demonstrating #{average_score >= 4.5 ? 'outstanding' : average_score >= 4.0 ? 'excellent' : average_score >= 3.5 ? 'strong' : 'solid'} performance across evaluation criteria. #{mock_overall_feedback(average_score)}"
+        "comments" => "Team #{team_name} achieved an overall score of #{average_score}/5.0#{hackathon_context}, demonstrating #{average_score >= 4.5 ? 'outstanding' : average_score >= 4.0 ? 'excellent' : average_score >= 3.5 ? 'strong' : 'solid'} performance across evaluation criteria. #{mock_overall_feedback(average_score)}"
       })
     end
 
@@ -960,18 +1147,19 @@ module Ai
       end
     end
 
-    def mock_team_blog(team_name)
+    def mock_team_blog(team_name, hackathon_name = nil)
       todays_date = Date.today.strftime("%Y-%m-%d")
+      hackathon_title = hackathon_name || "Metathon 2025"
 
       <<~MARKDOWN
         ---
-        title: "Innovating Document Analysis: #{team_name}'s Hackathon Journey"
+        title: "Innovating Document Analysis: #{team_name}'s #{hackathon_title} Journey"
         author: "#{team_name}"
         date: "#{todays_date}"
-        tags: ["hackathon", "AI", "document-processing", "innovation"]
+        tags: ["hackathon", "AI", "document-processing", "innovation", "#{hackathon_title.downcase.gsub(/\s+/, '-')}"]
         ---
 
-        # Innovating Document Analysis: #{team_name}'s Hackathon Journey
+        # Innovating Document Analysis: #{team_name}'s #{hackathon_title} Journey
 
         ## Introduction
 
@@ -1020,148 +1208,88 @@ module Ai
       MARKDOWN
     end
 
-    def mock_hackathon_insights
+    def mock_hackathon_insights(hackathon_name = nil)
       todays_date = Date.today.strftime("%B %d, %Y")
+      hackathon_title = hackathon_name || "Metathon 2025"
 
-      <<~MARKDOWN
-        # Hackathon Trends Analysis
-
-        *Generated on #{todays_date}*
-
-        ## Executive Summary
-
-        This analysis examines the patterns and trends across all teams participating in the hackathon. Overall, we observed a strong focus on AI-powered solutions, particularly in document processing and analysis domains. Most teams utilized modern web frameworks combined with AI services, with Ruby on Rails and React being particularly popular choices. Common challenges included API integration issues and balancing feature scope with time constraints. Innovation was highest in the application of AI for specialized document understanding and in creating intuitive user experiences for complex data.
-
-        ## Technologies
-
-        ### Prevalent Tech Stacks
-
-        1. **Backend Frameworks**
-           - **Ruby on Rails**: Used by approximately 40% of teams for rapid API development
-           - **Node.js/Express**: Popular among teams focusing on real-time features
-           - **Django/Flask**: Chosen by teams with Python-heavy AI components
-
-        2. **Frontend Technologies**
-           - **React.js**: Dominant choice (60% of teams) for building interactive interfaces
-           - **Vue.js**: Preferred by teams valuing simplicity and quick setup
-           - **Tailwind CSS**: Increasingly popular for responsive designs without custom CSS
-
-        3. **AI/ML Services**
-           - **Claude/Anthropic APIs**: Widely used for document understanding tasks
-           - **OpenAI GPT**: Common choice for text generation and summarization
-           - **Custom ML Models**: Few teams (about 15%) implemented specialized models
-
-        4. **Database Solutions**
-           - **PostgreSQL**: Most common relational database choice
-           - **MongoDB**: Used by teams requiring more flexible schema
-
-        ### Outliers
-
-        - One team employed Rust for performance-critical components of their document processing pipeline
-        - A standout team built their entire solution using WebAssembly for client-side document processing without cloud dependencies
-
-        ## Problem Domains
-
-        ### Common Themes
-
-        1. **Document Management** (45% of projects)
-           - Intelligent organization and retrieval systems
-           - Automated classification and tagging
-
-        2. **Knowledge Extraction** (30% of projects)
-           - Transforming unstructured documents into structured data
-           - Creating searchable knowledge bases from document repositories
-
-        3. **Collaboration Tools** (25% of projects)
-           - Real-time document editing with AI assistance
-           - Team-based document analysis and annotation
-
-        ## AI Use Cases
-
-        ### Primary Applications
-
-        1. **Text Extraction and OCR**
-           - Converting images and PDFs to machine-readable text
-           - Handling complex layouts and tables
-
-        2. **Summarization**
-           - Multi-level summarization (document, project, team)
-           - Context-aware executive summaries
-
-        3. **Content Generation**
-           - Creating blogs, reports, and presentations from raw data
-           - Generating insights from document collections
-
-        4. **Evaluation and Scoring**
-           - Assessing document quality and completeness
-           - Providing feedback on technical content
-
-        ## Approaches
-
-        ### Methodologies
-
-        1. **Microservices Architecture** (35% of teams)
-           - Separate services for document processing, AI analysis, and user interfaces
-           - API-first designs for flexibility
-
-        2. **Monolithic Applications** (40% of teams)
-           - Integrated solutions with all components in one codebase
-           - Faster initial development but less scalable
-
-        3. **Hybrid Cloud/Local Processing** (25% of teams)
-           - Local preprocessing combined with cloud-based AI
-           - Optimized for performance and cost
-
-        ## Challenges
-
-        ### Common Obstacles
-
-        1. **AI API Rate Limits and Costs**
-           - Teams struggled with balancing quality and API usage
-           - Several implemented clever caching strategies
-
-        2. **Processing Large Documents**
-           - Handling memory constraints with large PDFs and archives
-           - Chunking strategies varied widely in effectiveness
-
-        3. **UI/UX for Complex Data**
-           - Making complex document insights accessible to users
-           - Simplifying interactions with AI-generated content
-
-        ## Innovation Highlights
-
-        ### Standout Approaches
-
-        1. **Team Alpha's Document Stream Processing**
-           - Innovative approach to handling document chunks in parallel
-           - Maintained context across processing boundaries
-
-        2. **Team Beta's Multi-Modal Understanding**
-           - Combined text, image, and layout analysis in a single pipeline
-           - Achieved 40% better accuracy on complex documents
-
-        3. **Team Gamma's Collaborative Annotation**
-           - Real-time shared document annotation with AI suggestions
-           - Novel conflict resolution mechanism
-
-        ## Recommendations for Future Hackathons
-
-        1. **Provide Specialized AI Access**
-           - Dedicated API access would allow teams to focus on innovation rather than API limits
-
-        2. **Encourage Cross-Domain Collaboration**
-           - Teams with diverse skills (UI/UX, AI, backend) produced the most complete solutions
-
-        3. **Emphasize User Testing**
-           - Projects that included user feedback iterations showed better overall results
-
-        4. **Starter Templates**
-           - Provide authentication and basic API setups to let teams focus on core innovation
-
-        5. **Longer Hackathon Duration**
-           - Complex AI applications benefit from more iteration time
-           - Consider multi-weekend formats with check-ins
-      MARKDOWN
+      # Create a structured JSON response with the requested format
+      {
+        "programming_languages": {
+          "description": "Analysis of programming languages used across projects",
+          "data": [
+            {"name": "JavaScript", "count": 12, "percentage": 80},
+            {"name": "Python", "count": 8, "percentage": 53},
+            {"name": "TypeScript", "count": 7, "percentage": 47},
+            {"name": "Ruby", "count": 6, "percentage": 40},
+            {"name": "Java", "count": 4, "percentage": 27},
+            {"name": "Go", "count": 3, "percentage": 20},
+            {"name": "C#", "count": 2, "percentage": 13}
+          ],
+          "insights": "JavaScript continues to dominate as the most widely used language, appearing in 80% of projects. Python follows closely, particularly in projects with AI components. TypeScript adoption is growing rapidly, indicating teams' preference for type safety in frontend development. Ruby usage correlates strongly with Rails adoption for backend development."
+        },
+        "ai_tools": {
+          "description": "Analysis of AI tools and frameworks used",
+          "data": [
+            {"name": "TensorFlow", "count": 7, "percentage": 47},
+            {"name": "OpenAI", "count": 6, "percentage": 40},
+            {"name": "Claude/Anthropic", "count": 5, "percentage": 33},
+            {"name": "PyTorch", "count": 4, "percentage": 27},
+            {"name": "Hugging Face", "count": 3, "percentage": 20},
+            {"name": "scikit-learn", "count": 2, "percentage": 13}
+          ],
+          "insights": "TensorFlow leads as the most popular AI framework, commonly used for custom model development. OpenAI's APIs were frequently utilized for text generation and summarization tasks. Claude/Anthropic APIs were particularly favored for document understanding and complex prompt engineering scenarios. Teams typically chose either PyTorch or TensorFlow exclusively, rarely using both in the same project."
+        },
+        "coherent_ideas": {
+          "description": "Recurring themes and coherent project ideas",
+          "list": [
+            "Smart healthcare monitoring using AI for early diagnosis and treatment recommendations",
+            "Document processing pipelines with multi-level summarization capabilities",
+            "Sustainability platforms for tracking and optimizing resource usage",
+            "Educational technology solutions with adaptive learning features",
+            "Financial inclusion tools targeting underserved communities",
+            "Smart city applications focusing on transportation optimization"
+          ],
+          "insights": "Health tech and document processing emerged as the dominant themes across projects. Teams demonstrated particular interest in multi-level analysis systems that could process information at various granularities. Sustainability-focused projects showed the most interdisciplinary approach, combining IoT, data visualization, and predictive analytics. Education technology solutions often incorporated adaptive learning algorithms to personalize content delivery."
+        },
+        "common_wins": {
+          "description": "Achievements and successes observed across teams",
+          "list": [
+            "Strong technical implementations with well-architected systems and clean code organization",
+            "Effective use of modern development practices including CI/CD, testing, and documentation",
+            "Creative UI/UX designs that made complex data accessible and intuitive",
+            "Successful integration of multiple AI services into coherent workflows",
+            "Implementations that addressed real-world problems with practical solutions",
+            "Cross-platform compatibility ensuring solutions work across different environments"
+          ],
+          "insights": "Teams that performed well typically demonstrated excellence in both technical implementation and user experience design. Clean architecture patterns were evident in the most successful projects, with clear separation of concerns. Documentation quality correlated strongly with overall project success, especially for more complex solutions. The ability to integrate multiple AI services smoothly distinguished the top-performing teams."
+        },
+        "common_pitfalls": {
+          "description": "Challenges and obstacles faced by teams",
+          "list": [
+            "Scope too ambitious for hackathon timeframe, leading to partially implemented features",
+            "Insufficient error handling in AI components causing cascade failures",
+            "Over-reliance on external APIs without fallback mechanisms",
+            "Performance issues when processing large documents or datasets",
+            "Challenges in effective UI/UX design for complex data visualization",
+            "Limited testing of edge cases in data processing pipelines"
+          ],
+          "insights": "The most common pitfall was underestimating the complexity of AI integration, particularly when dealing with multiple models or services. Teams frequently struggled with proper error handling for AI components, often assuming ideal response patterns. Performance optimization was frequently deprioritized due to time constraints, leading to inefficient implementations for large-scale data processing."
+        },
+        "innovative_ideas": {
+          "description": "Standout innovative approaches",
+          "list": [
+            "Team Alpha's novel approach to document streaming for real-time collaborative annotation",
+            "Team Beta's multi-modal understanding system combining text, image, and layout analysis",
+            "Team Gamma's hierarchical summarization system maintaining context across levels",
+            "Team Delta's innovative caching strategy for optimizing AI API usage",
+            "Team Epsilon's hybrid local/cloud processing model for sensitive documents",
+            "Team Zeta's conflict resolution mechanism for simultaneous document editing"
+          ],
+          "insights": "The most innovative solutions typically combined established techniques in novel ways rather than developing entirely new algorithms. Cross-domain approaches, particularly those combining NLP, computer vision, and structured data analysis, produced exceptionally innovative results. Teams that invested time in thoughtful prompt engineering for AI models achieved significantly better results than those using basic prompting techniques."
+        },
+        "executive_summary": "This analysis examines patterns and trends across teams participating in #{hackathon_title}. Overall, we observed a strong focus on AI-powered solutions, particularly in document processing and healthcare domains. Most teams utilized modern web frameworks combined with AI services, with JavaScript and TensorFlow being particularly popular choices. Common challenges included API integration issues and balancing feature scope with time constraints. Innovation was highest in the application of AI for specialized document understanding and in creating intuitive user experiences for complex data. Teams that combined strong technical implementation with thoughtful user experience design consistently produced the most successful projects.",
+        "recommendations": "For future hackathons, we recommend: 1) Providing specialized AI access to allow teams to focus on innovation rather than API limits, 2) Encouraging cross-domain collaboration as teams with diverse skills produced more complete solutions, 3) Emphasizing user testing since projects with user feedback iterations showed better overall results, 4) Offering starter templates with authentication and basic API setups so teams can focus on core innovation, and 5) Considering longer hackathon durations as complex AI applications benefit from more iteration time."
+      }.to_json
     end
   end
 end

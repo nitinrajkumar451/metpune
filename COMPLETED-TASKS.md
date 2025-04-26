@@ -2,6 +2,15 @@
 
 ## Feature Implementation
 
+### Automated Content Generation
+- ✅ Created rake tasks for automatic blog generation
+- ✅ Implemented scheduled task configuration with whenever gem
+- ✅ Added background job handling for summaries, blogs, and evaluations
+- ✅ Created command-line script for manual content generation
+- ✅ Added dependency tracking between content types
+- ✅ Updated documentation for the automated system
+- ✅ Added troubleshooting guidance for scheduled tasks
+
 ### Hackathon Insights Feature
 - ✅ Created HackathonInsight model
 - ✅ Added API controller with endpoints for insights
@@ -76,8 +85,49 @@
 - ✅ Fixed failing tests
 - ✅ Improved test coverage
 
+### Testing the Automated Content Generation
+
+To test the automated content generation system:
+
+1. Run the tasks manually:
+   ```bash
+   # Generate summaries and blogs for all teams
+   bundle exec rake auto_blogs:generate_all
+   
+   # Generate blogs for teams with summaries
+   bundle exec rake auto_blogs:generate
+   
+   # Generate evaluations for teams with summaries
+   bundle exec rake auto_blogs:evaluate
+   ```
+
+2. Test the command-line script:
+   ```bash
+   bin/generate_content
+   ```
+
+3. Test the scheduled tasks:
+   ```bash
+   # Add to crontab
+   bundle exec whenever --update-crontab metathon
+   
+   # Check crontab entries
+   crontab -l
+   
+   # Wait for scheduled execution or force a run
+   bundle exec rake auto_blogs:generate
+   
+   # Check the log
+   tail -f log/cron.log
+   
+   # Clear crontab when done
+   bundle exec whenever --clear-crontab metathon
+   ```
+
 ## Final Preparation
 - ✅ Removed debug logging statements
 - ✅ Cleaned up code
 - ✅ Updated README with new features
 - ✅ Created deployment checklist
+- ✅ Added automated content generation documentation
+- ✅ Updated troubleshooting guides

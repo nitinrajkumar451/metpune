@@ -12,18 +12,23 @@ class IngestDocumentsJob < ApplicationJob
     # "application/zip" => "zip"
   }
 
-  def perform
+  def perform(hackathon_id = nil)
+    # If no hackathon_id is provided, use the default hackathon
+    hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
+    
+    Rails.logger.info("Starting document ingestion for hackathon: #{hackathon.name} (ID: #{hackathon.id})")
+    
     google_drive_service = GoogleDriveService.new
     team_folders = google_drive_service.list_team_folders
 
     team_folders.each do |team_folder|
-      process_team_folder(team_folder, google_drive_service)
+      process_team_folder(team_folder, google_drive_service, hackathon)
     end
   end
 
   private
 
-  def process_team_folder(team_folder, google_drive_service)
+  def process_team_folder(team_folder, google_drive_service, hackathon)
     files = google_drive_service.list_team_files(team_folder)
 
     files.each do |file|
@@ -35,9 +40,14 @@ class IngestDocumentsJob < ApplicationJob
       path_parts = file[:path].split("/")
       project = path_parts.length >= 3 ? path_parts[-2] : "Default"
 
-      submission = Submission.create!(
+      # Find or create submission within this hackathon
+      submission = Submission.find_or_initialize_by(
+        hackathon_id: hackathon.id,
         team_name: team_folder,
-        filename: file[:name],
+        filename: file[:name]
+      )
+      
+      submission.update!(
         file_type: file_type,
         source_url: file[:id],
         project: project,

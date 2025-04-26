@@ -70,6 +70,51 @@ The application uses AI services for document processing, summarization, evaluat
 - **Detailed feedback**: Provides specific feedback for each criterion
 - **Weighted scoring**: Calculates total score based on criteria importance
 
+#### Team Evaluation Configuration
+
+By default, the system uses real AI API calls in all environments. In development mode, you can enable mock data for faster testing:
+
+```bash
+# Enable mock evaluations (instant success with random scores)
+USE_MOCK_EVALUATIONS=true rails s
+
+# Use real AI calls (default)
+rails s
+```
+
+#### Monitoring Evaluation Status
+
+The leaderboard endpoint (`/api/hackathons/:hackathon_id/leaderboard`) provides detailed status information:
+
+```json
+{
+  "leaderboard": [...],
+  "status": {
+    "pending": 2,
+    "processing": 1,
+    "success": 10,
+    "failed": 0,
+    "total": 13
+  },
+  "complete": false
+}
+```
+
+#### Debug Tasks for Team Evaluations
+
+When working with evaluations, these Rake tasks can help:
+
+```bash
+# Mark all pending/processing evaluations as success
+rails debug:mark_team_evaluations_success
+
+# Force update all non-success evaluations to success
+rails debug:force_update_evaluations
+
+# Force update for a specific hackathon
+HACKATHON_ID=1 rails debug:force_update_evaluations
+```
+
 ### AI Blog Generation
 
 - **Technical blog posts**: Creates structured, engaging content from team summaries
@@ -757,6 +802,49 @@ SIDEKIQ_PASSWORD=secure_password
 # Job retry attempts (optional, default: 25)
 SIDEKIQ_MAX_RETRY_COUNT=10
 ```
+
+### Automated Content Generation
+
+The application includes an automated content generation system that creates team blogs, summaries, and evaluations:
+
+1. **Scheduled Tasks**: Uses the `whenever` gem to schedule periodic content generation
+2. **On-Demand Processing**: Includes a command-line script for manual content generation
+3. **Dependency Tracking**: Automatically generates content when dependencies are available
+
+#### Rake Tasks
+
+The following rake tasks are available for content generation:
+
+```bash
+# Generate blogs for teams with summaries
+rake auto_blogs:generate
+
+# Generate summaries and blogs for all teams
+rake auto_blogs:generate_all  
+
+# Generate evaluations for teams with summaries
+rake auto_blogs:evaluate
+```
+
+#### Scheduled Tasks
+
+The system automatically runs these tasks on a schedule:
+- Every 10 minutes: Check for team summaries and generate blogs
+- Every 15 minutes: Check for teams needing summaries and blogs
+- Every 20 minutes: Check for teams needing evaluation
+
+#### Manual Execution
+
+For immediate content generation, use the provided script:
+
+```bash
+bin/generate_content
+```
+
+This script will sequentially:
+1. Generate summaries for all teams with submissions
+2. Generate blogs for all teams with summaries
+3. Generate evaluations for all teams with summaries
 
 ### Error Handling and Monitoring
 

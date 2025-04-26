@@ -1,16 +1,19 @@
 class GenerateTeamSummaryJob < ApplicationJob
   queue_as :default
 
-  def perform(team_name)
+  def perform(team_name, hackathon_id = nil)
+    # Get the hackathon (use provided ID or default)
+    hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
+    
     # Find or create the team summary record
-    team_summary = TeamSummary.find_or_initialize_by(team_name: team_name)
+    team_summary = TeamSummary.find_or_initialize_by(team_name: team_name, hackathon_id: hackathon.id)
     team_summary.update!(status: "processing")
 
     begin
-      Rails.logger.info("Generating summary for team: #{team_name}")
+      Rails.logger.info("Generating summary for team: #{team_name} in hackathon: #{hackathon.name}")
 
-      # Get all successful submissions for this team
-      submissions = Submission.success.where(team_name: team_name)
+      # Get all successful submissions for this team in this hackathon
+      submissions = Submission.success.where(team_name: team_name, hackathon_id: hackathon.id)
 
       if submissions.any?
         # Format the submissions for the AI client
@@ -30,16 +33,16 @@ class GenerateTeamSummaryJob < ApplicationJob
 
         # Update the team summary record
         team_summary.update!(content: summary_content, status: "success")
-        Rails.logger.info("Successfully generated summary for team: #{team_name}")
+        Rails.logger.info("Successfully generated summary for team: #{team_name} in hackathon: #{hackathon.name}")
       else
         # No submissions found
-        error_message = "No successful submissions found for team: #{team_name}"
+        error_message = "No successful submissions found for team: #{team_name} in hackathon: #{hackathon.name}"
         Rails.logger.error(error_message)
         team_summary.update!(content: error_message, status: "failed")
       end
     rescue => e
       # Handle errors
-      Rails.logger.error("Error generating team summary for #{team_name}: #{e.class} - #{e.message}")
+      Rails.logger.error("Error generating team summary for #{team_name} in hackathon: #{hackathon.name}: #{e.class} - #{e.message}")
       Rails.logger.error(e.backtrace.join("\n"))
 
       # Provide more detailed error info in development mode

@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+require_relative "../config/environment"
+
+puts "=== Metathon Content Generator ==="
+puts "This script will generate content for teams in the hackathon system."
+puts
+
+puts "Step 1: Generating team summaries for all available teams..."
+Rake::Task["auto_blogs:generate_all"].invoke
+puts
+
+puts "Step 2: Generating blogs for teams with summaries..."
+Rake::Task["auto_blogs:generate"].invoke
+puts
+
+puts "Step 3: Evaluating teams with summaries..."
+Rake::Task["auto_blogs:evaluate"].invoke
+puts
+
+puts "=== Content generation complete ==="
