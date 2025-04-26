@@ -69,20 +69,4 @@ test:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  primary: &primary_production
-    <<: *default
-    database: metathon_backend_production
-    username: metathon_backend
-    password: <%= ENV["METATHON_BACKEND_DATABASE_PASSWORD"] %>
-  cache:
-    <<: *primary_production
-    database: metathon_backend_production_cache
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *primary_production
-    database: metathon_backend_production_queue
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *primary_production
-    database: metathon_backend_production_cable
-    migrations_paths: db/cable_migrate
+  url: <%= ENV["DATABASE_URL"] %>
