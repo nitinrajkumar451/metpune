@@ -26,7 +26,7 @@ module ServiceErrorHandler
 
       error_message = begin
         response_body = JSON.parse(response.body)
-        
+
         # Handle different error formats from different APIs
         case service_name
         when "Claude"

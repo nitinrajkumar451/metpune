@@ -1,7 +1,7 @@
 class TeamBlog < ApplicationRecord
   # Associations
   belongs_to :hackathon
-  
+
   # Validations
   validates :team_name, presence: true
   validates :hackathon_id, presence: true

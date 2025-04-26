@@ -4,7 +4,7 @@ class GenerateHackathonInsightsJob < ApplicationJob
   def perform(hackathon_id = nil)
     # Get the hackathon (use provided ID or default)
     hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
-    
+
     # Create or update the hackathon insight record
     insight = HackathonInsight.new(status: "processing", hackathon_id: hackathon.id)
     insight.save!

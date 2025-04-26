@@ -1,7 +1,7 @@
 module Api
   class SubmissionsController < ApplicationController
-    before_action :set_hackathon, except: [:index, :show, :summaries, :start_ingestion]
-    
+    before_action :set_hackathon, except: [ :index, :show, :summaries, :start_ingestion ]
+
     def index
       submissions = if params[:hackathon_id]
         # If hackathon_id is provided via nested route
@@ -77,14 +77,14 @@ module Api
       Rails.logger.info "Starting document ingestion..."
       Rails.logger.info "Request parameters: #{params.inspect}"
       Rails.logger.info "Request headers: #{request.headers.env.select { |k, v| k.start_with?('HTTP_') }.inspect}"
-      
+
       begin
         if params[:hackathon_id]
           Rails.logger.info "Hackathon ID provided: #{params[:hackathon_id]}"
           # Start ingestion for a specific hackathon if ID is provided
           hackathon = Hackathon.find(params[:hackathon_id])
           Rails.logger.info "Found hackathon: #{hackathon.name} (ID: #{hackathon.id})"
-          
+
           # In development mode, perform synchronously for easier testing
           if Rails.env.development?
             Rails.logger.info "Development mode: Running job synchronously"
@@ -103,7 +103,7 @@ module Api
             render json: { error: "No default hackathon found" }, status: :unprocessable_entity
             return
           end
-          
+
           if Rails.env.development?
             Rails.logger.info "Development mode: Running job synchronously with default hackathon"
             IngestDocumentsJob.new.perform
@@ -124,9 +124,9 @@ module Api
         render json: { error: "An error occurred while starting ingestion: #{e.message}" }, status: :internal_server_error
       end
     end
-    
+
     private
-    
+
     def set_hackathon
       @hackathon = Hackathon.find(params[:hackathon_id]) if params[:hackathon_id]
     end

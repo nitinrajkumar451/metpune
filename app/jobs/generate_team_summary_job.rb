@@ -4,7 +4,7 @@ class GenerateTeamSummaryJob < ApplicationJob
   def perform(team_name, hackathon_id = nil)
     # Get the hackathon (use provided ID or default)
     hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
-    
+
     # Find or create the team summary record
     team_summary = TeamSummary.find_or_initialize_by(team_name: team_name, hackathon_id: hackathon.id)
     team_summary.update!(status: "processing")

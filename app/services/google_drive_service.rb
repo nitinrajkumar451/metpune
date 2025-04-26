@@ -29,15 +29,15 @@ class GoogleDriveService
       team_folders_response.files.map(&:name)
     else
       # In development/test, return mock data for local testing
-      setup_local_test_files unless File.directory?(Rails.root.join('tmp/mock_drive'))
-      
+      setup_local_test_files unless File.directory?(Rails.root.join("tmp/mock_drive"))
+
       # Get actual team folders from the mock_drive directory
-      team_folders = Dir.glob(Rails.root.join('tmp/mock_drive', '*')).select do |f|
+      team_folders = Dir.glob(Rails.root.join("tmp/mock_drive", "*")).select do |f|
         File.directory?(f)
       end.map do |f|
         File.basename(f)
       end
-      
+
       team_folders
     end
   end
@@ -80,19 +80,19 @@ class GoogleDriveService
       end
     else
       # For local testing, return PDF files from our local mock directory
-      setup_local_test_files unless File.directory?(Rails.root.join('tmp/mock_drive'))
-      
+      setup_local_test_files unless File.directory?(Rails.root.join("tmp/mock_drive"))
+
       # Get local files for the team from our mock directory
-      team_directory = Rails.root.join('tmp/mock_drive', team_name)
+      team_directory = Rails.root.join("tmp/mock_drive", team_name)
       return [] unless File.directory?(team_directory)
-      
-      file_paths = Dir.glob(File.join(team_directory, '**', '*.pdf'))
-      
+
+      file_paths = Dir.glob(File.join(team_directory, "**", "*.pdf"))
+
       file_paths.map do |file_path|
-        relative_path = file_path.sub(%r{^#{Rails.root.join('tmp/mock_drive')}/}, '')
+        relative_path = file_path.sub(%r{^#{Rails.root.join('tmp/mock_drive')}/}, "")
         file_name = File.basename(file_path)
         file_id = "local_#{team_name}_#{file_name.gsub(/[^a-zA-Z0-9]/, '_')}"
-        
+
         {
           id: file_id,
           name: file_name,
@@ -139,44 +139,44 @@ class GoogleDriveService
       content_io.string
     else
       # For local testing, if it's a local file ID, read from the file system
-      if file_id.start_with?('local_')
+      if file_id.start_with?("local_")
         # Parse the file path from the ID
-        parts = file_id.split('_')
+        parts = file_id.split("_")
         team_name = parts[1]
-        
+
         # The file name needs to be reconstructed with proper extension
-        raw_file_name = parts[2..-1].join('_')
-        
+        raw_file_name = parts[2..-1].join("_")
+
         # If the last part is 'pdf', treat it as an extension
-        if raw_file_name.end_with?('_pdf')
-          file_name = raw_file_name.gsub(/_pdf$/, '.pdf')
+        if raw_file_name.end_with?("_pdf")
+          file_name = raw_file_name.gsub(/_pdf$/, ".pdf")
         else
           file_name = raw_file_name
         end
-        
+
         Rails.logger.info("Looking for file: #{file_name} in team directory for #{team_name}")
-        
+
         # Find matching files in the team directory
-        team_directory = Rails.root.join('tmp/mock_drive', team_name)
-        file_paths = Dir.glob(File.join(team_directory, '**', "*#{file_name}*"))
-        
+        team_directory = Rails.root.join("tmp/mock_drive", team_name)
+        file_paths = Dir.glob(File.join(team_directory, "**", "*#{file_name}*"))
+
         if file_paths.empty?
           # Try a more permissive search if exact match fails
-          file_paths = Dir.glob(File.join(team_directory, '**', "*.pdf"))
+          file_paths = Dir.glob(File.join(team_directory, "**", "*.pdf"))
           Rails.logger.info("Fallback search found #{file_paths.count} PDF files in #{team_directory}")
-          
+
           if file_paths.empty?
             raise ApiErrors::ResourceNotFoundError.new("Local file not found: #{file_id}")
           end
         end
-        
+
         # Read the file content
         file_path = file_paths.first
         File.read(file_path)
       else
         # In development/test, return mock content based on file ID pattern for non-local files
         if file_id.include?("pdf")
-          File.read(Rails.root.join('spec/fixtures/files/sample_project.pdf'))
+          File.read(Rails.root.join("spec/fixtures/files/sample_project.pdf"))
         else
           "Sample content for file #{file_id}"
         end
@@ -201,37 +201,37 @@ class GoogleDriveService
     error_message.include?("google-apps") ||
     error_message.include?("this document cannot be downloaded")
   end
-  
+
   # Setup local test files for development/testing
   def setup_local_test_files
-    mock_drive_dir = Rails.root.join('tmp/mock_drive')
+    mock_drive_dir = Rails.root.join("tmp/mock_drive")
     FileUtils.mkdir_p(mock_drive_dir)
-    
+
     # Check if we already have team directories
-    existing_teams = Dir.glob(File.join(mock_drive_dir, '*')).select { |f| File.directory?(f) }
-    
+    existing_teams = Dir.glob(File.join(mock_drive_dir, "*")).select { |f| File.directory?(f) }
+
     if existing_teams.any?
       Rails.logger.info("Using existing team directories in #{mock_drive_dir}")
       return
     end
-    
+
     # Create team directories if none exist
-    ["TeamA", "TeamB", "TeamC"].each do |team_name|
+    [ "TeamA", "TeamB", "TeamC" ].each do |team_name|
       team_dir = File.join(mock_drive_dir, team_name)
       FileUtils.mkdir_p(team_dir)
-      
+
       # Create project directories
-      ["Project1", "Project2"].each do |project_name|
+      [ "Project1", "Project2" ].each do |project_name|
         project_dir = File.join(team_dir, project_name)
         FileUtils.mkdir_p(project_dir)
-        
+
         # Create sample PDF files
         2.times do |i|
           file_path = File.join(project_dir, "document_#{i+1}.pdf")
           next if File.exist?(file_path)
-          
+
           # Create sample PDF content
-          File.open(file_path, 'w') do |f|
+          File.open(file_path, "w") do |f|
             f.puts "%PDF-1.5"
             f.puts "% #{team_name} - #{project_name} - Document #{i+1}"
             f.puts "This is a sample PDF file for #{team_name}'s #{project_name}."
@@ -244,7 +244,7 @@ class GoogleDriveService
         end
       end
     end
-    
+
     Rails.logger.info("Created local test files in #{mock_drive_dir}")
   end
 

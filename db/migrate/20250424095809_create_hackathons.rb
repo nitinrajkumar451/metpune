@@ -9,7 +9,7 @@ class CreateHackathons < ActiveRecord::Migration[8.0]
 
       t.timestamps
     end
-    
+
     add_index :hackathons, :name, unique: true
   end
 end

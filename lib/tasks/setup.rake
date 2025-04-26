@@ -20,9 +20,9 @@ namespace :setup do
   end
 
   desc "Create a new hackathon"
-  task :create_new_hackathon, [:name] => :environment do |_, args|
+  task :create_new_hackathon, [ :name ] => :environment do |_, args|
     name = args[:name] || "Metathon #{Date.today.year + 1}"
-    
+
     hackathon = Hackathon.create!(
       name: name,
       description: "Hackathon for document ingestion",
@@ -30,15 +30,15 @@ namespace :setup do
       start_date: Date.today,
       end_date: Date.today + 30.days
     )
-    
+
     puts "✅ Created new hackathon: #{hackathon.name} (ID: #{hackathon.id})"
     puts "You can now use this ID in the frontend to select this hackathon"
   end
-  
+
   desc "List all hackathons"
   task list_hackathons: :environment do
     hackathons = Hackathon.all.order(created_at: :desc)
-    
+
     if hackathons.empty?
       puts "No hackathons found in the database"
     else
@@ -54,7 +54,7 @@ namespace :setup do
   task dev_setup: :environment do
     # Create default hackathon
     Rake::Task["setup:create_default_hackathon"].invoke
-    
+
     # Create test data
     if Hackathon.count > 0 && TeamSummary.count == 0
       puts "🚀 Creating test data..."

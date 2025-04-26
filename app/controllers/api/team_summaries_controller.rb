@@ -1,7 +1,7 @@
 module Api
   class TeamSummariesController < ApplicationController
-    before_action :set_hackathon, except: [:index, :show, :generate]
-    
+    before_action :set_hackathon, except: [ :index, :show, :generate ]
+
     def index
       team_summaries = if params[:hackathon_id]
         # If hackathon_id is provided via nested route
@@ -61,10 +61,10 @@ module Api
       if Rails.env.development?
         Rails.logger.info("DEVELOPMENT MODE: Running team summary generation synchronously")
         GenerateTeamSummaryJob.new.perform(team_name, hackathon.id)
-        
+
         # Get the updated team summary
         team_summary.reload
-        
+
         render json: {
           message: "Team summary generated for: #{team_name} in hackathon: #{hackathon.name}",
           status: team_summary.status,
@@ -73,9 +73,9 @@ module Api
       else
         # Enqueue the job in production
         GenerateTeamSummaryJob.perform_later(team_name, hackathon.id)
-        
-        render json: { 
-          message: "Team summary generation started for: #{team_name} in hackathon: #{hackathon.name}" 
+
+        render json: {
+          message: "Team summary generation started for: #{team_name} in hackathon: #{hackathon.name}"
         }, status: :ok
       end
     end

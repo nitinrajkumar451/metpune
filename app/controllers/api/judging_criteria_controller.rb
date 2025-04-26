@@ -1,7 +1,7 @@
 module Api
   class JudgingCriteriaController < ApplicationController
-    before_action :set_hackathon, except: [:index, :show, :create, :update, :destroy]
-    
+    before_action :set_hackathon, except: [ :index, :show, :create, :update, :destroy ]
+
     def index
       criteria = if params[:hackathon_id]
         # If hackathon_id is provided via nested route
@@ -11,7 +11,7 @@ module Api
         # Legacy API support for non-nested routes
         JudgingCriterion.ordered
       end
-      
+
       render json: criteria
     end
 
@@ -35,7 +35,7 @@ module Api
       # Get the hackathon (use provided ID or default)
       hackathon_id = params[:hackathon_id] || (params[:judging_criterion] && params[:judging_criterion][:hackathon_id])
       hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
-      
+
       # Build criterion with params and set hackathon
       criterion = JudgingCriterion.new(criterion_params)
       criterion.hackathon = hackathon
@@ -87,7 +87,7 @@ module Api
     end
 
     private
-    
+
     def set_hackathon
       @hackathon = Hackathon.find(params[:hackathon_id])
     end

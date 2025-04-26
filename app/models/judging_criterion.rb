@@ -1,10 +1,10 @@
 class JudgingCriterion < ApplicationRecord
   # Set the correct table name
-  self.table_name = 'judging_criterions'
-  
+  self.table_name = "judging_criterions"
+
   # Associations
   belongs_to :hackathon
-  
+
   # Validations
   validates :name, presence: true
   validates :hackathon_id, presence: true

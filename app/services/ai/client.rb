@@ -9,7 +9,7 @@ module Ai
     def generate_pdf_summary(content)
       # Store content for use in prompts
       @current_content = content
-      
+
       # If we have a valid Claude API key, always use it regardless of environment
       if ENV["CLAUDE_API_KEY"].present?
         Rails.logger.info("Using Claude API for PDF summary generation")
@@ -24,7 +24,7 @@ module Ai
         enhanced_mock_pdf_summary(content)
       end
     end
-    
+
     def extract_text_from_document(content, file_type)
       # Skip API calls in development/test
       return mock_document_response(file_type) unless Rails.env.production?
@@ -155,7 +155,7 @@ module Ai
         evaluation_result
       end
     end
-    
+
     # Helper method to detect which provider to use
     def detect_provider
       if ENV["CLAUDE_API_KEY"].present?
@@ -177,17 +177,17 @@ module Ai
       formatted_content = "Team: #{team_name}\n\n"
       formatted_content += "Hackathon: #{hackathon_name || 'Metathon 2025'}\n\n"
       formatted_content += "Team Summary:\n#{team_summary}\n\n"
-      
+
       Rails.logger.info("Generating team blog for #{team_name} using provider: #{@provider}")
-      
+
       # If we have a Claude API key, use it regardless of environment
       if ENV["CLAUDE_API_KEY"].present?
         Rails.logger.info("Using Claude API for team blog generation")
-        return call_claude_api(formatted_content, create_blog_prompt)
+        call_claude_api(formatted_content, create_blog_prompt)
       # If we have an OpenAI API key, use it instead
       elsif ENV["OPENAI_API_KEY"].present?
         Rails.logger.info("Using OpenAI API for team blog generation")
-        return call_openai_api(formatted_content, create_blog_prompt)
+        call_openai_api(formatted_content, create_blog_prompt)
       # Follow normal provider selection if no specific keys are configured
       else
         case @provider
@@ -222,11 +222,11 @@ module Ai
       # If we have a Claude API key, use it regardless of environment
       if ENV["CLAUDE_API_KEY"].present?
         Rails.logger.info("Using Claude API for hackathon insights generation")
-        return call_claude_api(formatted_content, create_hackathon_insights_prompt)
+        call_claude_api(formatted_content, create_hackathon_insights_prompt)
       # If we have an OpenAI API key, use it instead
       elsif ENV["OPENAI_API_KEY"].present?
         Rails.logger.info("Using OpenAI API for hackathon insights generation")
-        return call_openai_api(formatted_content, create_hackathon_insights_prompt)
+        call_openai_api(formatted_content, create_hackathon_insights_prompt)
       # Follow normal provider selection if no specific keys are configured
       else
         case @provider
@@ -277,11 +277,11 @@ module Ai
         enhanced_prompt = prompt
         if is_pdf
           # Since we can't directly send PDF, extract some sample content to improve context
-          sample_content = content[0..1000].force_encoding('UTF-8').scrub
+          sample_content = content[0..1000].force_encoding("UTF-8").scrub
           Rails.logger.info("PDF detected, using text-only processing")
           enhanced_prompt = "#{prompt}\n\nThis appears to be a PDF document. Here's a sample of the binary content (this may look garbled):\n\n#{sample_content}\n\nPlease provide the best summary you can based on this information."
         end
-        
+
         # Special handling for evaluation prompts - ensure they are formatted correctly
         if prompt.include?("Judging Criteria") || prompt.include?("Format your response as structured JSON")
           Rails.logger.info("Detected evaluation prompt, using evaluation system prompt")
@@ -289,7 +289,7 @@ module Ai
         else
           system_prompt = "You are an expert PDF content analyzer. Your task is to provide concise, insightful summaries of hackathon team documents."
         end
-        
+
         Rails.logger.info("Making Claude API call with prompt length: #{enhanced_prompt.length} characters")
         # Make the API call with text-only content
         response = HTTParty.post(
@@ -307,7 +307,7 @@ module Ai
                 role: "user",
                 content: [
                   {
-                    type: "text", 
+                    type: "text",
                     text: enhanced_prompt
                   }
                 ]
@@ -324,11 +324,11 @@ module Ai
         # Extract the response content from Claude API
         response_body = JSON.parse(response.body)
         Rails.logger.info("Claude API response received, parsing result")
-        
+
         if response_body["content"].present? && response_body["content"].is_a?(Array)
           # Extract the text from the first content block
           result = response_body["content"].find { |c| c["type"] == "text" }&.dig("text")
-          
+
           # For evaluation prompts, try to extract JSON from the response
           if prompt.include?("Format your response as structured JSON")
             Rails.logger.info("Extracting JSON from Claude evaluation response")
@@ -338,17 +338,17 @@ module Ai
               if match = result.match(json_pattern)
                 json_str = match[1] || match[2] || match[0]
                 Rails.logger.info("Found JSON pattern, attempting to parse")
-                return json_str.strip
+                json_str.strip
               else
                 Rails.logger.warn("No JSON pattern found in Claude response")
-                return result
+                result
               end
             rescue => json_err
               Rails.logger.error("Error extracting JSON from Claude response: #{json_err.message}")
-              return result
+              result
             end
           else
-            return result
+            result
           end
         else
           # Fallback if response format is unexpected
@@ -369,19 +369,19 @@ module Ai
         # Handle all errors
         log_error("Claude API error: #{e.message}")
         Rails.logger.error("Falling back to mock implementation due to API error")
-        
+
         if prompt.include?("Format your response as structured JSON")
           # For evaluation errors, return valid mock evaluation data
           team_name = "Unknown Team"
           criteria = []
-          
+
           # Safely extract team name if possible
           if content.is_a?(String)
             team_match = content.match(/Team: (.*?)$/m)
             if team_match && team_match[1]
               team_name = team_match[1].strip
             end
-            
+
             # Try to extract criteria
             criteria_section = content.match(/Judging Criteria:(.*?)(?=Team:|$)/m)
             if criteria_section && criteria_section[1]
@@ -390,7 +390,7 @@ module Ai
               end
             end
           end
-          
+
           mock_team_evaluation(team_name, criteria, nil)
         else
           enhanced_mock_pdf_summary(content)
@@ -486,7 +486,7 @@ module Ai
           - Date information
           - Author names if present
 
-          Structure your summary in coherent paragraphs. Be specific about technical details when they appear in the document. Try to accurately represent the document's main points without being too wordy. 
+          Structure your summary in coherent paragraphs. Be specific about technical details when they appear in the document. Try to accurately represent the document's main points without being too wordy.#{' '}
           Focus on extracting meaningful information that would be helpful for evaluating this hackathon project.
         PROMPT
       else
@@ -498,7 +498,7 @@ module Ai
           Please provide a concise yet comprehensive summary of this document that captures:
 
           1. Main objectives and goals described
-          2. Key technical approaches and methodologies  
+          2. Key technical approaches and methodologies#{'  '}
           3. Important features or functionality highlighted
           4. Technologies, frameworks, and tools mentioned
           5. Any notable results, metrics, or achievements
@@ -515,7 +515,7 @@ module Ai
         PROMPT
       end
     end
-    
+
     def create_document_prompt(file_type)
       case file_type
       when "pdf"
@@ -747,58 +747,58 @@ module Ai
       # Extract key information from the PDF content
       team_match = content.match(/Team:\s*(\w+)/)
       project_match = content.match(/Project:\s*(\w+)/)
-      
+
       team_name = team_match ? team_match[1].strip : "Unknown"
       project_name = project_match ? project_match[1].strip : "Project"
-      
+
       # Extract technologies mentioned
       tech_keywords = [
-        "Python", "TensorFlow", "PyTorch", "React", "Node.js", "MongoDB", "AWS", 
+        "Python", "TensorFlow", "PyTorch", "React", "Node.js", "MongoDB", "AWS",
         "Spring Boot", "Kafka", "PostgreSQL", "Ethereum", "IoT", "Ruby", "Rails",
         "Microservices", "Docker", "Kubernetes", "Blockchain", "Machine Learning",
         "NLP", "Computer Vision", "API", "Redux", "GraphQL", "REST", "Serverless"
       ]
-      
+
       technologies = tech_keywords.select { |tech| content.include?(tech) }.join(", ")
       technologies = "modern web technologies" if technologies.empty?
-      
+
       # Extract features if mentioned with numbered or bulleted lists
       features = []
       content.scan(/(\d+\.\s+[^\n.]+|\-\s+[^\n.]+)/).each do |match|
         features << match[0].strip
       end
-      
+
       # Limit to top 3 features
       features = features[0..2] if features.length > 3
-      
+
       # Look for metrics or results
       metrics_match = content.scan(/(\d+%|\d+\s*metric tons|\d+\s*reduction)/)
       metrics = metrics_match.flatten[0..2].join(", ") if metrics_match.any?
-      
+
       # Generate a summary based on the actual content
       summary = <<~SUMMARY
         This document presents #{team_name}'s #{project_name} project for the Metathon hackathon. The team has developed #{project_name.include?("AI") ? "an AI-powered solution" : "an innovative solution"} that addresses real-world challenges in the #{project_name.include?("Fin") ? "financial sector" : project_name.include?("Eco") ? "sustainability space" : project_name.include?("Smart") ? "urban environment" : "technology sector"}.
-        
+
         The team employs a sophisticated technical architecture utilizing #{technologies}. Their approach demonstrates careful attention to both technical excellence and user experience considerations, with a focus on scalability and maintainability.
-        
-        #{features.any? ? "Key features highlighted in the document include " + features.map { |f| f.sub(/^\d+\.\s+|\-\s+/, '') }.join(", ") + "." : "The solution offers multiple innovative features designed to address user needs effectively while maintaining technical robustness."} 
-        
+
+        #{features.any? ? "Key features highlighted in the document include " + features.map { |f| f.sub(/^\d+\.\s+|\-\s+/, '') }.join(", ") + "." : "The solution offers multiple innovative features designed to address user needs effectively while maintaining technical robustness."}#{' '}
+
         #{metrics ? "The project shows promising results with metrics including #{metrics}." : "The document outlines both the technical implementation details and the practical impact of the solution."}
-        
+
         The team acknowledges existing limitations and provides a thoughtful roadmap for future development, including potential enhancements and scaling opportunities. Overall, the project demonstrates solid technical foundations and creative problem-solving approaches.
       SUMMARY
-      
+
       # Ensure proper formatting
       summary.gsub(/\n{3,}/, "\n\n").strip
     end
-    
+
     def mock_pdf_summary
       # Try to extract metadata from the current content
       if defined?(@current_content) && @current_content.present?
         content = @current_content
         return enhanced_mock_pdf_summary(content)
       end
-      
+
       # Default mock response if no content is available
       <<~SUMMARY
         This document presents a comprehensive overview of the team's hackathon project, a document analysis platform. The primary objective is to develop an AI-powered system that can ingest, process, and extract insights from various document types, with a focus on PDFs for the MVP.
@@ -814,7 +814,7 @@ module Ai
         Future improvements planned include support for additional document types (PPTX, DOCX, images), multi-language capabilities, collaborative annotation features, and a more sophisticated visualization dashboard for insights.
       SUMMARY
     end
-    
+
     def mock_document_response(file_type)
       if file_type == "pdf"
         "Sample PDF content extracted from the document.\n\nThis is a mock extraction for testing purposes.\n\nContent appears to be a technical document with several sections including introduction, methodology, and results."
@@ -885,20 +885,20 @@ module Ai
       features = []
       challenges = []
       objectives = []
-      
+
       # List of technology keywords to look for
       tech_keywords = [
-        "Python", "TensorFlow", "PyTorch", "React", "Node.js", "MongoDB", "AWS", 
+        "Python", "TensorFlow", "PyTorch", "React", "Node.js", "MongoDB", "AWS",
         "Spring Boot", "Kafka", "PostgreSQL", "Ethereum", "IoT", "Ruby", "Rails",
         "Microservices", "Docker", "Kubernetes", "Blockchain", "Machine Learning",
         "NLP", "Computer Vision", "API", "Redux", "GraphQL", "REST", "Serverless",
         "AI", "Cloud", "React Native", "Vue.js", "Angular", "JavaScript", "TypeScript"
       ]
-      
+
       # Extract information from each summary
       summaries.each do |submission|
         summary_text = submission[:summary].to_s
-        
+
         # Identify domain
         if summary_text.include?("healthcare") || summary_text.include?("medical") || summary_text.include?("health")
           project_domains.add("Healthcare")
@@ -915,12 +915,12 @@ module Ai
         else
           project_domains.add("Technology")
         end
-        
+
         # Extract technologies
         tech_keywords.each do |tech|
           technologies.add(tech) if summary_text.include?(tech)
         end
-        
+
         # Extract potential features
         summary_lines = summary_text.split("\n")
         summary_lines.each do |line|
@@ -929,7 +929,7 @@ module Ai
             break if features.length >= 5
           end
         end
-        
+
         # Extract potential challenges
         if summary_text.include?("challenge") || summary_text.include?("limitation") || summary_text.include?("difficulty")
           challenges_section = summary_text.split(/challenges|limitations/i)[1]
@@ -938,7 +938,7 @@ module Ai
             challenges << challenges_text.strip if challenges_text && challenges_text.length > 10
           end
         end
-        
+
         # Extract objectives
         if summary_text.include?("objective") || summary_text.include?("goal") || summary_text.include?("aim")
           objectives_section = summary_text.split(/objective|goal|aim/i)[1]
@@ -948,18 +948,18 @@ module Ai
           end
         end
       end
-      
+
       # Default values if nothing was extracted
-      project_domains = ["Technology"] if project_domains.empty?
-      technologies = ["Web Technologies", "AI/ML", "Cloud Computing"] if technologies.empty?
-      
+      project_domains = [ "Technology" ] if project_domains.empty?
+      technologies = [ "Web Technologies", "AI/ML", "Cloud Computing" ] if technologies.empty?
+
       # Limit features to top 5
       features = features[0..4] if features.length > 5
-      
+
       # Generate a customized team summary
       domains_text = project_domains.to_a.join(", ")
       tech_text = technologies.to_a.join(", ")
-      
+
       <<~SUMMARY
         # Team #{team_name} - Comprehensive Report
 
@@ -1001,7 +1001,7 @@ module Ai
         Team #{team_name} has delivered an impressive project that effectively addresses challenges in the #{domains_text} space. The team demonstrated strong technical capabilities and creativity in their approach. The solution shows good potential for real-world application and further development. While there are opportunities for enhancement, the current implementation provides a solid foundation for future development.
       SUMMARY
     end
-    
+
     def mock_team_summary(team_name)
       # Fall back to basic mock if enhanced version fails
       <<~SUMMARY
@@ -1217,25 +1217,25 @@ module Ai
         "programming_languages": {
           "description": "Analysis of programming languages used across projects",
           "data": [
-            {"name": "JavaScript", "count": 12, "percentage": 80},
-            {"name": "Python", "count": 8, "percentage": 53},
-            {"name": "TypeScript", "count": 7, "percentage": 47},
-            {"name": "Ruby", "count": 6, "percentage": 40},
-            {"name": "Java", "count": 4, "percentage": 27},
-            {"name": "Go", "count": 3, "percentage": 20},
-            {"name": "C#", "count": 2, "percentage": 13}
+            { "name": "JavaScript", "count": 12, "percentage": 80 },
+            { "name": "Python", "count": 8, "percentage": 53 },
+            { "name": "TypeScript", "count": 7, "percentage": 47 },
+            { "name": "Ruby", "count": 6, "percentage": 40 },
+            { "name": "Java", "count": 4, "percentage": 27 },
+            { "name": "Go", "count": 3, "percentage": 20 },
+            { "name": "C#", "count": 2, "percentage": 13 }
           ],
           "insights": "JavaScript continues to dominate as the most widely used language, appearing in 80% of projects. Python follows closely, particularly in projects with AI components. TypeScript adoption is growing rapidly, indicating teams' preference for type safety in frontend development. Ruby usage correlates strongly with Rails adoption for backend development."
         },
         "ai_tools": {
           "description": "Analysis of AI tools and frameworks used",
           "data": [
-            {"name": "TensorFlow", "count": 7, "percentage": 47},
-            {"name": "OpenAI", "count": 6, "percentage": 40},
-            {"name": "Claude/Anthropic", "count": 5, "percentage": 33},
-            {"name": "PyTorch", "count": 4, "percentage": 27},
-            {"name": "Hugging Face", "count": 3, "percentage": 20},
-            {"name": "scikit-learn", "count": 2, "percentage": 13}
+            { "name": "TensorFlow", "count": 7, "percentage": 47 },
+            { "name": "OpenAI", "count": 6, "percentage": 40 },
+            { "name": "Claude/Anthropic", "count": 5, "percentage": 33 },
+            { "name": "PyTorch", "count": 4, "percentage": 27 },
+            { "name": "Hugging Face", "count": 3, "percentage": 20 },
+            { "name": "scikit-learn", "count": 2, "percentage": 13 }
           ],
           "insights": "TensorFlow leads as the most popular AI framework, commonly used for custom model development. OpenAI's APIs were frequently utilized for text generation and summarization tasks. Claude/Anthropic APIs were particularly favored for document understanding and complex prompt engineering scenarios. Teams typically chose either PyTorch or TensorFlow exclusively, rarely using both in the same project."
         },

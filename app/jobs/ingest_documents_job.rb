@@ -15,9 +15,9 @@ class IngestDocumentsJob < ApplicationJob
   def perform(hackathon_id = nil)
     # If no hackathon_id is provided, use the default hackathon
     hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
-    
+
     Rails.logger.info("Starting document ingestion for hackathon: #{hackathon.name} (ID: #{hackathon.id})")
-    
+
     google_drive_service = GoogleDriveService.new
     team_folders = google_drive_service.list_team_folders
 
@@ -46,7 +46,7 @@ class IngestDocumentsJob < ApplicationJob
         team_name: team_folder,
         filename: file[:name]
       )
-      
+
       submission.update!(
         file_type: file_type,
         source_url: file[:id],
@@ -94,7 +94,7 @@ class IngestDocumentsJob < ApplicationJob
     else
       raise ArgumentError, "Unsupported file type: #{file_type}. MVP only supports PDF files."
     end
-    
+
     # Future implementation will support additional file types:
     # case file_type
     # when "pdf", "docx"

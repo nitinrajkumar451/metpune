@@ -1,7 +1,7 @@
 module Api
   class HackathonInsightsController < ApplicationController
-    before_action :set_hackathon, except: [:index, :generate, :markdown]
-    
+    before_action :set_hackathon, except: [ :index, :generate, :markdown ]
+
     def index
       insight = if params[:hackathon_id]
         # If hackathon_id is provided via nested route
@@ -21,10 +21,10 @@ module Api
 
     def generate
       hackathon_id = params[:hackathon_id]
-      
+
       # Get the hackathon (use provided ID or default)
       hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
-      
+
       # Check if there are any successful team summaries for this hackathon
       team_summaries = TeamSummary.success.where(hackathon_id: hackathon.id)
 
@@ -42,10 +42,10 @@ module Api
       if Rails.env.development?
         Rails.logger.info("DEVELOPMENT MODE: Running hackathon insights generation synchronously")
         GenerateHackathonInsightsJob.new.perform(hackathon.id)
-        
+
         # Get the updated insight
         insight.reload
-        
+
         render json: {
           message: "Hackathon insights generated for hackathon: #{hackathon.name}",
           status: insight.status,
@@ -54,9 +54,9 @@ module Api
       else
         # Enqueue the job in production
         GenerateHackathonInsightsJob.perform_later(hackathon.id)
-        
-        render json: { 
-          message: "Hackathon insights generation started for hackathon: #{hackathon.name}" 
+
+        render json: {
+          message: "Hackathon insights generation started for hackathon: #{hackathon.name}"
         }, status: :ok
       end
     end
@@ -77,7 +77,7 @@ module Api
         render json: { error: "No successful insights found#{hackathon_context}" }, status: :not_found
       end
     end
-    
+
     private
 
     def set_hackathon

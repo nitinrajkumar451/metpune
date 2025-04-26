@@ -1,7 +1,7 @@
 module Api
   class TeamBlogsController < ApplicationController
-    before_action :set_hackathon, except: [:index, :show, :generate, :markdown]
-    
+    before_action :set_hackathon, except: [ :index, :show, :generate, :markdown ]
+
     def index
       team_blogs = if params[:hackathon_id]
         # If hackathon_id is provided via nested route
@@ -61,10 +61,10 @@ module Api
       if Rails.env.development?
         Rails.logger.info("DEVELOPMENT MODE: Running team blog generation synchronously")
         GenerateTeamBlogJob.new.perform(team_name, hackathon.id)
-        
+
         # Get the updated team blog
         team_blog.reload
-        
+
         render json: {
           message: "Team blog generated for: #{team_name} in hackathon: #{hackathon.name}",
           status: team_blog.status,
@@ -73,9 +73,9 @@ module Api
       else
         # Enqueue the job in production
         GenerateTeamBlogJob.perform_later(team_name, hackathon.id)
-        
-        render json: { 
-          message: "Team blog generation started for: #{team_name} in hackathon: #{hackathon.name}" 
+
+        render json: {
+          message: "Team blog generation started for: #{team_name} in hackathon: #{hackathon.name}"
         }, status: :ok
       end
     end
@@ -93,12 +93,12 @@ module Api
         render plain: team_blog.content, content_type: "text/markdown"
       else
         hackathon_context = params[:hackathon_id] ? " in this hackathon" : ""
-        render json: { 
-          error: "No successful blog found for team: #{params[:team_name]}#{hackathon_context}" 
+        render json: {
+          error: "No successful blog found for team: #{params[:team_name]}#{hackathon_context}"
         }, status: :not_found
       end
     end
-    
+
     private
 
     def set_hackathon

@@ -4,7 +4,7 @@ class GenerateTeamBlogJob < ApplicationJob
   def perform(team_name, hackathon_id = nil)
     # Get the hackathon (use provided ID or default)
     hackathon = hackathon_id ? Hackathon.find(hackathon_id) : Hackathon.default
-    
+
     # Find or create the team blog record
     team_blog = TeamBlog.find_or_initialize_by(team_name: team_name, hackathon_id: hackathon.id)
     team_blog.update!(status: "processing")

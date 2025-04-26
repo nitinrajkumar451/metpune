@@ -3,7 +3,7 @@
 # Learn more: http://github.com/javan/whenever
 
 # Set the environment
-set :environment, ENV['RAILS_ENV'] || 'development'
+set :environment, ENV["RAILS_ENV"] || "development"
 set :output, "#{path}/log/cron.log"
 
 # Every 10 minutes, check for team summaries that need blogs

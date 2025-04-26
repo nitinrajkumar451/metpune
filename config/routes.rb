@@ -108,7 +108,7 @@ Rails.application.routes.draw do
       get "/hackathon_insights/markdown", to: "hackathon_insights#markdown"
       post "/hackathon_insights/generate", to: "hackathon_insights#generate"
     end
-    
+
     # Legacy endpoints (kept for backward compatibility)
     resources :submissions, only: [ :index, :show ]
     get "/summaries", to: "submissions#summaries"
