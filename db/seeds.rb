@@ -6,7 +6,7 @@
 puts "Checking for existing hackathons..."
 if Hackathon.count == 0
   puts "Creating default hackathon..."
-  
+
   default_hackathon = Hackathon.create!(
     name: "Metathon 2025",
     description: "The inaugural Metathon hackathon focused on AI and document processing.",
@@ -14,7 +14,7 @@ if Hackathon.count == 0
     end_date: Date.new(2025, 4, 30),
     status: "active"
   )
-  
+
   puts "Created default hackathon: #{default_hackathon.name} (ID: #{default_hackathon.id})"
 else
   puts "Default hackathon already exists. Using existing hackathon."
@@ -65,10 +65,10 @@ puts "Created #{JudgingCriterion.count} judging criteria"
 # Create dummy team data if in development environment
 if Rails.env.development?
   puts "Creating sample team data for development..."
-  
+
   # Create team summaries
-  team_names = ["TeamAlpha", "TeamBeta", "TeamGamma", "TeamDelta", "TeamOmega"]
-  
+  team_names = [ "TeamAlpha", "TeamBeta", "TeamGamma", "TeamDelta", "TeamOmega" ]
+
   team_names.each do |team_name|
     unless TeamSummary.exists?(team_name: team_name, hackathon_id: default_hackathon.id)
       # Create team summary with appropriate domain focus based on team name
@@ -109,7 +109,7 @@ if Rails.env.development?
           focus: "Adaptive learning platform"
         }
       end
-      
+
       # Generate team summary content
       team_summary_content = <<~SUMMARY
         # Team #{team_name} - Comprehensive Report
@@ -155,7 +155,7 @@ if Rails.env.development?
         ## OVERALL ASSESSMENT
         Team #{team_name} has delivered an impressive project that effectively addresses challenges in the #{domain_info[:domain]} space. The team demonstrated strong technical capabilities and creativity in their approach. The solution shows good potential for real-world application and further development. While there are opportunities for enhancement, the current implementation provides a solid foundation for future development.
       SUMMARY
-      
+
       # Create the team summary
       TeamSummary.create!(
         team_name: team_name,
@@ -163,11 +163,11 @@ if Rails.env.development?
         status: "success",
         hackathon_id: default_hackathon.id
       )
-      
+
       puts "Created team summary for #{team_name}"
     end
   end
-  
+
   # Create team evaluations with realistic scores
   team_names.each do |team_name|
     unless TeamEvaluation.exists?(team_name: team_name, hackathon_id: default_hackathon.id)
@@ -175,7 +175,7 @@ if Rails.env.development?
       scores = {}
       total_weighted_score = 0
       total_weight = 0
-      
+
       # Create unique scores for each team and criterion
       JudgingCriterion.where(hackathon_id: default_hackathon.id).each do |criterion|
         # Generate a base score with some randomness depending on team name
@@ -187,7 +187,7 @@ if Rails.env.development?
         when "TeamOmega" then 4.7
         else 4.0
         end
-        
+
         # Add some per-criterion variation
         variation = case criterion.name
         when "Innovation"
@@ -202,11 +202,11 @@ if Rails.env.development?
           team_name == "TeamBeta" || team_name == "TeamOmega" ? 0.2 : -0.1
         else 0.0
         end
-        
+
         # Calculate final score (between 3.5 and 5.0, rounded to 1 decimal)
-        score = [(base_score + variation).round(1), 5.0].min
-        score = [score, 3.5].max
-        
+        score = [ (base_score + variation).round(1), 5.0 ].min
+        score = [ score, 3.5 ].max
+
         # Generate feedback based on score
         feedback = if score >= 4.5
           "Exceptional performance in this area. The team demonstrated outstanding #{criterion.name.downcase} with remarkable attention to detail and execution."
@@ -217,19 +217,19 @@ if Rails.env.development?
         else
           "Satisfactory work in this area. There is significant room for improvement in future iterations."
         end
-        
+
         scores[criterion.name] = {
           "score" => score,
           "weight" => criterion.weight,
           "feedback" => feedback
         }
-        
+
         total_weighted_score += score * criterion.weight
         total_weight += criterion.weight
       end
-      
-      average_score = (total_weighted_score / [total_weight, 0.01].max).round(2)
-      
+
+      average_score = (total_weighted_score / [ total_weight, 0.01 ].max).round(2)
+
       # Generate team-specific comments
       comments = case team_name
       when "TeamAlpha"
@@ -245,7 +245,7 @@ if Rails.env.development?
       else
         "The team delivered a solid project with good technical execution and innovation. There are opportunities to enhance user experience and expand feature coverage in future iterations."
       end
-      
+
       # Create the team evaluation
       TeamEvaluation.create!(
         team_name: team_name,
@@ -255,11 +255,11 @@ if Rails.env.development?
         status: "success",
         hackathon_id: default_hackathon.id
       )
-      
+
       puts "Created team evaluation for #{team_name} with score: #{average_score}"
     end
   end
-  
+
   # Create hackathon insights
   unless HackathonInsight.exists?(hackathon_id: default_hackathon.id)
     # Generate structured insights JSON
@@ -333,17 +333,17 @@ if Rails.env.development?
       executive_summary: "This analysis examines patterns and trends across teams participating in Metathon 2025. Overall, we observed a strong focus on AI-powered solutions, particularly in document processing and healthcare domains. Most teams utilized modern web frameworks combined with AI services, with JavaScript and TensorFlow being particularly popular choices. Common challenges included API integration issues and balancing feature scope with time constraints. Innovation was highest in the application of AI for specialized document understanding and in creating intuitive user experiences for complex data.",
       recommendations: "For future hackathons, we recommend: 1) Providing specialized AI access to allow teams to focus on innovation rather than API limits, 2) Encouraging cross-domain collaboration as teams with diverse skills produced more complete solutions, 3) Emphasizing user testing since projects with user feedback iterations showed better overall results, 4) Offering starter templates with authentication and basic API setups so teams can focus on core innovation, and 5) Considering longer hackathon durations as complex AI applications benefit from more iteration time."
     }.to_json
-    
+
     # Create the hackathon insights
     HackathonInsight.create!(
       content: insights_data,
       status: "success",
       hackathon_id: default_hackathon.id
     )
-    
+
     puts "Created hackathon insights"
   end
-  
+
   puts "Completed creating sample data for development environment"
 end
 

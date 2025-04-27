@@ -172,7 +172,8 @@ class GoogleDriveService
 
         # Read the file content
         file_path = file_paths.first
-        File.read(file_path)
+        pdf_text = extract_text_from_pdf(file_path)  # <- extract text, not just read raw
+        pdf_text
       else
         # In development/test, return mock content based on file ID pattern for non-local files
         if file_id.include?("pdf")
@@ -185,6 +186,11 @@ class GoogleDriveService
   end
 
   private
+
+  def extract_text_from_pdf(file_path)
+    reader = PDF::Reader.new(file_path)
+    reader.pages.map(&:text).join("\n")
+  end
   # Helper method to detect various Google Document export error messages
   def is_export_required_error?(error)
     return false unless error.is_a?(Google::Apis::ClientError)

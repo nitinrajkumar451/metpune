@@ -406,6 +406,8 @@ module Ai
       end
 
       # Use Base64 encoding for binary content
+      Rails.logger.info("qwertmap")
+
       content_base64 = Base64.strict_encode64(content) if content.is_a?(String)
 
       begin
@@ -416,7 +418,7 @@ module Ai
             "Authorization" => "Bearer #{api_key}"
           },
           body: {
-            model: "gpt-4-vision-preview",
+            model: "gpt-4o-mini",
             max_tokens: 4000,
             messages: [
               {
@@ -426,17 +428,16 @@ module Ai
                     type: "text",
                     text: prompt
                   },
-                  content.is_a?(String) ? {
-                    type: "image_url",
-                    image_url: {
-                      url: "data:#{determine_media_type(content)};base64,#{content_base64}"
-                    }
-                  } : nil
+                  {
+                    type: "text",
+                    text: content_base64 || content  # Send Base64-encoded content or the original content if it's not a string
+                  }
                 ].compact
+
               }
             ]
           }.to_json,
-          timeout: 60  # Add a timeout to prevent hanging requests
+          timeout: 720  # Add a timeout to prevent hanging requests
         )
 
         # Handle response using our helper
