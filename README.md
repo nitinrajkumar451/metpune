@@ -122,7 +122,9 @@ HACKATHON_ID=1 rails debug:force_update_evaluations
 - **Storytelling**: Crafts a narrative around the team's journey and project
 - **Technical details**: Highlights key technical aspects and learning moments
 
-### Hackathon Insights
+### Future Ideas
+### Create MCP and let users query about the insight of hackathon
+### Hackathon Insights 
 
 - **Cross-team analysis**: Identifies common patterns across all team submissions
 - **Technology trends**: Tracks common tech stacks, frameworks, and tools used
@@ -180,7 +182,7 @@ If no API keys are set in production, the application will raise an error during
    rails db:create
    rails db:migrate
    ```
-
+5. create a tmp directory in your local and add the file subject to evaluation tmp/mock_drive/Cortex/Abmeet/Cortex.pdf(tmp/mock_drive/project_name/team_name/file.pdf)**Important**
 5. Configure Google Drive API:
    - Create a Google Cloud project in the [Google Cloud Console](https://console.cloud.google.com/)
    - Enable the Google Drive API for your project
