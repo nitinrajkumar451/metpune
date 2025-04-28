@@ -20,6 +20,7 @@ A Rails 8.0.2 API-only application that powers a hackathon evaluation platform. 
 - Multi-language support
 - Collaborative annotation features
 - Visualization dashboard for insights
+- MCP to query the trends from the past hackathons and get suggestive themes for hosting future hackathons
 
 ## Technology Stack
 
